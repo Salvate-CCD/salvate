@@ -45,5 +45,6 @@ const styles = StyleSheet.create({
   // inset 20.93% / 28.13% → (18, 18) 28×28
   icon: { position: 'absolute', left: 18, top: 18, width: 28, height: 28 },
   // top 80.23% → 69
-  label: { position: 'absolute', top: 69, left: -8, width: 80, textAlign: 'center' },
+  // 웹: numberOfLines 가 max-width 100%(=버튼 폭 64)를 걸어 글자 상자가 64로 줄고 8px 왼쪽으로 쏠림 → maxWidth 명시
+  label: { position: 'absolute', top: 69, left: -8, width: 80, maxWidth: 80, textAlign: 'center' },
 });

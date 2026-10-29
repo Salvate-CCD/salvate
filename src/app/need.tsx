@@ -24,7 +24,7 @@ export default function CallWithAI() {
         <View style={[styles.body, { marginBottom: navHeight }]}>
           {/* Figma "Graiphic" 389×370 — 초록 알약 3개 + 분홍 빛 (Graphic 280×230, SVG 는 glow 포함 430×430) */}
           <View pointerEvents="none" style={styles.graphicArea}>
-            <Image source={require('../../../assets/figma/need/graphic.svg')} style={styles.graphic} />
+            <Image source={require('../../assets/figma/need/graphic.svg')} style={styles.graphic} />
           </View>
 
           {/* Figma "Slide" 390×174 — 배경(280)은 영역 안 위에서 49, 가로 가운데 */}

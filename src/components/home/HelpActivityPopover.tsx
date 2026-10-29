@@ -6,6 +6,8 @@ import type { HelpStats } from './wheelData';
 
 export const POPOVER_WIDTH = 164;
 export const POPOVER_HEIGHT = 104;
+// 라벨 상자 폭 — Receive(가운데 x 137) 상자가 카드 오른쪽 끝(164)을 넘지 않도록 54
+const CAPTION_W = 54;
 
 // Figma: backdrop-blur 22px (opacity/44 ÷ 2)
 const webBlur = Platform.OS === 'web' ? ({ backdropFilter: 'blur(22px)' } as ViewStyle) : null;
@@ -34,9 +36,9 @@ export function HelpActivityPopover({ stats, left, top, onClose }: Props) {
         <Text style={[styles.number, { color: colors.labelNeutral }]}>{stats.give}</Text>
         <Text style={[styles.number, { color: colors.labelNeutral }]}>{stats.receive}</Text>
       </View>
-      <Text style={[styles.caption, { left: 30.5 - 30 }]}>Total</Text>
-      <Text style={[styles.caption, { left: 87 - 30 }]}>Give</Text>
-      <Text style={[styles.caption, { left: 137 - 30 }]}>Receive</Text>
+      <Text style={[styles.caption, { left: 30.5 - CAPTION_W / 2 }]}>Total</Text>
+      <Text style={[styles.caption, { left: 87 - CAPTION_W / 2 }]}>Give</Text>
+      <Text style={[styles.caption, { left: 137 - CAPTION_W / 2 }]}>Receive</Text>
       {/* Figma "Divider" */}
       <Image source={require('../../../assets/figma/home/popover-divider.svg')} style={styles.divider} />
       <Text style={styles.relation}>{stats.relation}</Text>
@@ -90,11 +92,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   number: { fontFamily: fonts.robotoMedium, fontSize: 18, lineHeight: 21 },
-  // Caption 2/R — Figma는 각 라벨의 가운데 x 좌표로 배치 (폭 60 상자로 가운데 정렬)
+  // Caption 2/R — Figma는 각 라벨의 가운데 x 좌표로 배치 (CAPTION_W 상자로 가운데 정렬)
   caption: {
     position: 'absolute',
     top: 56,
-    width: 60,
+    width: CAPTION_W,
     textAlign: 'center',
     fontFamily: fonts.robotoRegular,
     fontSize: 11,

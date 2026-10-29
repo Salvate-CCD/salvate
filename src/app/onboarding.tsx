@@ -25,10 +25,11 @@ const PAGES = 2;
 const HOME_INDICATOR = 34;
 
 export default function Onboarding() {
-  const { width } = useWindowDimensions();
+  const { width, height: windowHeight } = useWindowDimensions();
   const scroller = useRef<ScrollViewInstance>(null);
   const [page, setPage] = useState(0);
-  const [height, setHeight] = useState(0);
+  // 실제 높이는 onLayout 으로 받지만, 첫 화면에서 아래 기준 요소가 위로 튀지 않도록 화면 높이로 시작
+  const [height, setHeight] = useState(windowHeight);
 
   const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setPage(Math.round(e.nativeEvent.contentOffset.x / width));
