@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react';
 import {
   Animated,
   Easing,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { BOTTOM_BLEED, FullBleedOverlay, TOP_BLEED } from '@/components/lockscreen/FullBleedOverlay';
 import { colors, fonts, radius, typography } from '@/theme/tokens';
 
 type Props = {
@@ -31,10 +31,6 @@ const WALLPAPER_TOP = '#A8DBE4';
 const WALLPAPER_BOTTOM = '#7ABCCB';
 const isWeb = Platform.OS === 'web';
 const useNativeDriver = !isWeb;
-
-// 웹: Safari(iOS 26)는 화면 위·아래 가장자리에 붙은 고정 요소의 배경색으로 상태바·툴바를 칠함
-// (스크롤 없는 페이지라 툴바 뒤로는 이미지가 그려지지 않음) → 가장자리에 배경화면 끝 색 띠를 깔아 둠
-const EDGE = 2;
 
 // Figma "회원 승인" — 승인 푸시 알림이 와 있는 iOS 잠금화면. 위에서 스르륵 내려와 열림.
 // 도움 요청 게시 후 "Someone offered to help" 알림(1608:33987)도 같은 레이아웃에 문구만 바꿔 사용.
@@ -60,7 +56,7 @@ export function ApprovalLockScreen({
     Animated.timing(shown, { toValue: 1, duration: SLIDE_MS, easing: Easing.out(Easing.cubic), useNativeDriver }).start();
   }, [visible, shown]);
 
-  // 웹: 가장자리 고정 요소가 없는 순간(내려오는 중)엔 html/body 배경으로 칠함 → 떠 있는 동안 배경화면 색으로 바꿨다가 닫히면 복원
+  // 웹: 레이어가 내려오는 동안 등 상태바·툴바 뒤에 html/body 배경이 보일 때를 대비해 배경화면 색으로 바꿨다가 닫히면 복원
   useEffect(() => {
     if (Platform.OS !== 'web' || !visible) return;
     const targets = [document.documentElement, document.body];
@@ -82,52 +78,47 @@ export function ApprovalLockScreen({
   };
 
   return (
-    <Modal transparent visible={visible} animationType="none" statusBarTranslucent onRequestClose={open}>
+    <FullBleedOverlay visible={visible} onRequestClose={open}>
       <Animated.View style={[styles.root, isWeb && styles.rootWeb, { transform: [{ translateY }] }]}>
+        {/* 배경화면은 상태바·툴바 뒤까지(웹 bleed 포함) 깔고, 나머지는 보이는 영역 기준으로 배치 */}
         <Image source={require('../../assets/figma/lockscreen/wallpaper.jpg')} style={StyleSheet.absoluteFill} contentFit="cover" />
-        {/* 이미지 위에 얇게 깔아야 Safari 가 가장자리 색으로 집어감 — 이미지 끝 색과 같아 눈에 띄지 않음 */}
-        {isWeb ? (
-          <>
-            <View style={[styles.edge, { top: 0, backgroundColor: WALLPAPER_TOP }]} />
-            <View style={[styles.edge, { bottom: 0, backgroundColor: WALLPAPER_BOTTOM }]} />
-          </>
-        ) : null}
+        <View style={[styles.frame, { top: TOP_BLEED, bottom: BOTTOM_BLEED }]}>
+          <Text style={styles.date}>{date}</Text>
+          <Text style={styles.time}>{time}</Text>
 
-        <Text style={styles.date}>{date}</Text>
-        <Text style={styles.time}>{time}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${title} ${message}`}
+            onPress={open}
+            style={({ pressed }) => [styles.notification, pressed && { opacity: 0.85 }]}
+          >
+            <BlurView intensity={30} tint="light" style={styles.platterBlur} />
+            <View style={styles.appIcon}>
+              <Image source={require('../../assets/figma/lockscreen/logo-symbol-white.svg')} style={styles.appSymbol} />
+            </View>
+            <View style={styles.content}>
+              <Text style={[typography.body1Bold, styles.white]} numberOfLines={1}>
+                {title}
+              </Text>
+              <Text style={[styles.caption, styles.white]}>{message}</Text>
+            </View>
+            <Text style={styles.now}>now</Text>
+          </Pressable>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${title} ${message}`}
-          onPress={open}
-          style={({ pressed }) => [styles.notification, pressed && { opacity: 0.85 }]}
-        >
-          <BlurView intensity={30} tint="light" style={styles.platterBlur} />
-          <View style={styles.appIcon}>
-            <Image source={require('../../assets/figma/lockscreen/logo-symbol-white.svg')} style={styles.appSymbol} />
-          </View>
-          <View style={styles.content}>
-            <Text style={[typography.body1Bold, styles.white]} numberOfLines={1}>
-              {title}
-            </Text>
-            <Text style={[styles.caption, styles.white]}>{message}</Text>
-          </View>
-          <Text style={styles.now}>now</Text>
-        </Pressable>
-
-        <Image source={require('../../assets/figma/lockscreen/flashlight-button.svg')} style={[styles.quickButton, { left: 48 }]} />
-        <Image source={require('../../assets/figma/lockscreen/camera-button.svg')} style={[styles.quickButton, { right: 48 }]} />
-        <Text style={styles.swipe}>swipe up to open</Text>
+          <Image source={require('../../assets/figma/lockscreen/flashlight-button.svg')} style={[styles.quickButton, { left: 48 }]} />
+          <Image source={require('../../assets/figma/lockscreen/camera-button.svg')} style={[styles.quickButton, { right: 48 }]} />
+          <Text style={styles.swipe}>swipe up to open</Text>
+        </View>
       </Animated.View>
-    </Modal>
+    </FullBleedOverlay>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.black, overflow: 'hidden' },
-  // 검정 바탕이면 Safari 가 상태바·툴바를 검게 칠함 → 웹은 배경화면 아래 끝 색
+  // 웹: 이미지가 뜨기 전 잠깐 보이는 바탕 — 검정 대신 배경화면 아래 끝 색
   rootWeb: { backgroundColor: WALLPAPER_BOTTOM },
-  edge: { position: 'absolute', left: 0, right: 0, height: EDGE },
+  frame: { position: 'absolute', left: 0, right: 0 },
   // Figma 날짜·시간·스와이프 문구는 iOS 시스템 폰트(Inter/SF) — 시스템 기본 폰트 사용
   date: { position: 'absolute', top: 78, left: 0, right: 0, textAlign: 'center', fontSize: 18, letterSpacing: -0.5, color: colors.white },
   time: {
