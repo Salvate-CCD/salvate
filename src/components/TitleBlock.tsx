@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { colors, typography } from '@/theme/tokens';
 
 type Props = {
@@ -9,12 +9,13 @@ type Props = {
   descriptionWidth?: number;
   style?: StyleProp<ViewStyle>;
   descriptionStyle?: StyleProp<TextStyle>;
+  onLayout?: (e: LayoutChangeEvent) => void;
 };
 
 // Figma "Title & Description" 블록
-export function TitleBlock({ title, description, titleWidth, descriptionWidth, style, descriptionStyle }: Props) {
+export function TitleBlock({ title, description, titleWidth, descriptionWidth, style, descriptionStyle, onLayout }: Props) {
   return (
-    <View style={[styles.root, style]}>
+    <View style={[styles.root, style]} onLayout={onLayout}>
       <Text accessibilityRole="header" style={[typography.display1, styles.title, titleWidth ? { width: titleWidth } : null]}>
         {title}
       </Text>

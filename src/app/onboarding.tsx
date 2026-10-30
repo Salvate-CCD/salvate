@@ -61,8 +61,18 @@ export default function Onboarding() {
 
 type PageSize = { width: number; height: number };
 
+// 동심원 묶음(466) 중 맨 위 글자/퍼진 원이 시작되는 지점 — 그 위는 빈 여백
+const CIRCLE_VISIBLE_TOP = 23;
+// 설명 글자와 동심원 사이 최소 간격
+const CIRCLE_MIN_GAP = 12;
+
 function InvitationPage({ size, onNext }: { size: PageSize; onNext: () => void }) {
   const pulse = useRef(new Animated.Value(0)).current;
+  const [titleBottom, setTitleBottom] = useState(0);
+
+  // 화면이 낮으면(예: 모바일 Safari 툴바) 아래 기준 동심원이 설명 글자를 덮음 → 남은 공간에 맞게 아래 기준으로 축소
+  const room = size.height - CIRCLE_BOTTOM - titleBottom - CIRCLE_MIN_GAP;
+  const fit = titleBottom > 0 ? Math.min(1, room / (CIRCLE_HEIGHT - CIRCLE_VISIBLE_TOP)) : 1;
 
   // 온보딩_1의 두 프레임(기본 / 퍼진 상태)을 오가는 호흡 애니메이션
   useEffect(() => {
@@ -82,12 +92,13 @@ function InvitationPage({ size, onNext }: { size: PageSize; onNext: () => void }
     <View style={size}>
       <TitleBlock
         style={styles.title}
+        onLayout={(e) => setTitleBottom(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
         title="Connect by invitation"
         description="Give and receive help through your trusted network."
         titleWidth={350}
         descriptionWidth={269}
       />
-      <View style={styles.circleGraphic} pointerEvents="none">
+      <View style={[styles.circleGraphic, { transform: [{ scale: Math.max(fit, 0) }] }]} pointerEvents="none">
         <Animated.View style={[styles.circle, { transform: [{ scale }] }]}>
           <Image source={require('../../assets/figma/onboarding-circle.svg')} style={styles.circleImage} />
         </Animated.View>
@@ -133,7 +144,8 @@ function FeaturesPage({ size, onStart }: { size: PageSize; onStart: () => void }
         titleWidth={350}
         descriptionWidth={269}
       />
-      <View style={styles.cards}>
+      {/* 화면이 낮으면(예: 모바일 Safari 툴바) 카드가 Start 버튼에 가려짐 → 카드 영역만 스크롤 */}
+      <ScrollView style={styles.cardsScroll} contentContainerStyle={styles.cards} showsVerticalScrollIndicator={false}>
         {FEATURES.map((f) => (
           <View key={f.no} style={styles.card}>
             <View style={styles.cardImage}>
@@ -150,7 +162,7 @@ function FeaturesPage({ size, onStart }: { size: PageSize; onStart: () => void }
             </View>
           </View>
         ))}
-      </View>
+      </ScrollView>
       <View style={styles.startWrap}>
         <Button label="Start" onPress={onStart} />
       </View>
@@ -170,6 +182,11 @@ function NearbyGlow() {
   );
 }
 
+const CIRCLE_HEIGHT = 466;
+const START_BOTTOM = 56 - HOME_INDICATOR; // Figma 기준 화면 하단에서 56px
+const START_HEIGHT = 56; // Button size L
+const CIRCLE_BOTTOM = 112 - HOME_INDICATOR; // Figma 기준 화면 하단에서 112px
+
 const styles = StyleSheet.create({
   pager: { flex: 1 },
   title: { paddingTop: 23 },
@@ -178,9 +195,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 112 - HOME_INDICATOR, // Figma 기준 화면 하단에서 112px
-    height: 466,
+    bottom: CIRCLE_BOTTOM,
+    height: CIRCLE_HEIGHT,
     alignItems: 'center',
+    transformOrigin: 'bottom',
   },
   circle: { position: 'absolute', top: 36, width: 328, height: 328 },
   circleImage: { width: 328, height: 328 },
@@ -189,7 +207,9 @@ const styles = StyleSheet.create({
   fab: { position: 'absolute', right: 20, bottom: 64 - HOME_INDICATOR },
   fabImage: { width: 60, height: 60 },
 
-  cards: { paddingHorizontal: 20, gap: 16, marginTop: 16 },
+  // Start 버튼 윗선까지만 — 카드 이미지 그림자(16)가 잘리지 않게 위아래 여백은 안쪽 padding 으로
+  cardsScroll: { flex: 1, marginBottom: START_BOTTOM + START_HEIGHT },
+  cards: { paddingHorizontal: 20, gap: 16, paddingTop: 16, paddingBottom: 16 },
   card: { flexDirection: 'row', height: 124, gap: 21 },
   cardImage: { width: 165, height: 124 },
   cardSvg: { position: 'absolute', left: -16, top: -16, width: 197, height: 156 },
@@ -208,5 +228,5 @@ const styles = StyleSheet.create({
   badgeText: { color: colors.primary },
   cardTitle: { color: colors.labelNormal },
   cardBody: { color: colors.labelNormal },
-  startWrap: { position: 'absolute', left: 20, right: 20, bottom: 56 - HOME_INDICATOR },
+  startWrap: { position: 'absolute', left: 20, right: 20, bottom: START_BOTTOM },
 });

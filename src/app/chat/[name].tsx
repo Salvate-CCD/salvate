@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BubblePlaceholder } from '@/components/chat/BubblePlaceholder';
 import { FrostedBar } from '@/components/chat/FrostedBar';
 import { Header } from '@/components/Header';
+import { useWebPageBackground } from '@/hooks/use-web-page-background';
 import { colors } from '@/theme/tokens';
 
 // 상태바 아래 헤더 높이 (Figma Header 100 − 상태바 47)
@@ -23,6 +24,7 @@ function displayName(name?: string) {
 export default function Chat() {
   const { name } = useLocalSearchParams<{ name?: string }>();
   const insets = useSafeAreaInsets();
+  useWebPageBackground(colors.backgroundAlternative);
 
   return (
     <View style={styles.root}>
