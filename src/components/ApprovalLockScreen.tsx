@@ -11,7 +11,6 @@ import {
   Text,
   useWindowDimensions,
   View,
-  type ViewStyle,
 } from 'react-native';
 import { colors, fonts, radius, typography } from '@/theme/tokens';
 
@@ -33,11 +32,9 @@ const WALLPAPER_BOTTOM = '#7ABCCB';
 const isWeb = Platform.OS === 'web';
 const useNativeDriver = !isWeb;
 
-// 웹: 모바일 Safari 는 하단 주소창·툴바를 보이는 영역(100dvh) 밖에 겹쳐 그림.
-// 잠금화면을 툴바 뒤까지 닿는 가장 큰 높이(100lvh)로 늘려 배경화면이 툴바 뒤까지 보이게 하고,
-// 아래 기준 요소는 툴바에 가려지지 않게 늘어난 만큼(100lvh − 100dvh) 올림
-const webFullHeight = isWeb ? ({ position: 'fixed', top: 0, left: 0, right: 0, height: '100lvh' } as unknown as ViewStyle) : null;
-const aboveToolbar = (bottom: number) => (isWeb ? ({ bottom: `calc(${bottom}px + 100lvh - 100dvh)` } as unknown as { bottom: number }) : null);
+// 웹: Safari(iOS 26)는 화면 위·아래 가장자리에 붙은 고정 요소의 배경색으로 상태바·툴바를 칠함
+// (스크롤 없는 페이지라 툴바 뒤로는 이미지가 그려지지 않음) → 가장자리에 배경화면 끝 색 띠를 깔아 둠
+const EDGE = 2;
 
 // Figma "회원 승인" — 승인 푸시 알림이 와 있는 iOS 잠금화면. 위에서 스르륵 내려와 열림.
 // 도움 요청 게시 후 "Someone offered to help" 알림(1608:33987)도 같은 레이아웃에 문구만 바꿔 사용.
@@ -52,7 +49,7 @@ export function ApprovalLockScreen({
   const { height } = useWindowDimensions();
   // 0 = 화면 위로 숨음, 1 = 다 내려옴
   const shown = useRef(new Animated.Value(0)).current;
-  // 웹은 잠금화면 높이(100lvh)가 창 높이보다 클 수 있으므로 자기 높이 기준(%)으로 숨김
+  // 웹은 창 크기가 바뀌어도 맞도록 자기 높이 기준(%)으로 숨김
   const translateY = isWeb
     ? shown.interpolate({ inputRange: [0, 1], outputRange: ['-100%', '0%'] })
     : shown.interpolate({ inputRange: [0, 1], outputRange: [-height, 0] });
@@ -63,7 +60,7 @@ export function ApprovalLockScreen({
     Animated.timing(shown, { toValue: 1, duration: SLIDE_MS, easing: Easing.out(Easing.cubic), useNativeDriver }).start();
   }, [visible, shown]);
 
-  // 웹: 상태바 뒤(와 lvh 미지원 브라우저의 툴바 뒤)는 html/body 배경이 보임 → 떠 있는 동안 배경화면 색으로 바꿨다가 닫히면 복원
+  // 웹: 가장자리 고정 요소가 없는 순간(내려오는 중)엔 html/body 배경으로 칠함 → 떠 있는 동안 배경화면 색으로 바꿨다가 닫히면 복원
   useEffect(() => {
     if (Platform.OS !== 'web' || !visible) return;
     const targets = [document.documentElement, document.body];
@@ -86,8 +83,15 @@ export function ApprovalLockScreen({
 
   return (
     <Modal transparent visible={visible} animationType="none" statusBarTranslucent onRequestClose={open}>
-      <Animated.View style={[styles.root, webFullHeight, { transform: [{ translateY }] }]}>
+      <Animated.View style={[styles.root, isWeb && styles.rootWeb, { transform: [{ translateY }] }]}>
         <Image source={require('../../assets/figma/lockscreen/wallpaper.jpg')} style={StyleSheet.absoluteFill} contentFit="cover" />
+        {/* 이미지 위에 얇게 깔아야 Safari 가 가장자리 색으로 집어감 — 이미지 끝 색과 같아 눈에 띄지 않음 */}
+        {isWeb ? (
+          <>
+            <View style={[styles.edge, { top: 0, backgroundColor: WALLPAPER_TOP }]} />
+            <View style={[styles.edge, { bottom: 0, backgroundColor: WALLPAPER_BOTTOM }]} />
+          </>
+        ) : null}
 
         <Text style={styles.date}>{date}</Text>
         <Text style={styles.time}>{time}</Text>
@@ -111,9 +115,9 @@ export function ApprovalLockScreen({
           <Text style={styles.now}>now</Text>
         </Pressable>
 
-        <Image source={require('../../assets/figma/lockscreen/flashlight-button.svg')} style={[styles.quickButton, aboveToolbar(52), { left: 48 }]} />
-        <Image source={require('../../assets/figma/lockscreen/camera-button.svg')} style={[styles.quickButton, aboveToolbar(52), { right: 48 }]} />
-        <Text style={[styles.swipe, aboveToolbar(63)]}>swipe up to open</Text>
+        <Image source={require('../../assets/figma/lockscreen/flashlight-button.svg')} style={[styles.quickButton, { left: 48 }]} />
+        <Image source={require('../../assets/figma/lockscreen/camera-button.svg')} style={[styles.quickButton, { right: 48 }]} />
+        <Text style={styles.swipe}>swipe up to open</Text>
       </Animated.View>
     </Modal>
   );
@@ -121,6 +125,9 @@ export function ApprovalLockScreen({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.black, overflow: 'hidden' },
+  // 검정 바탕이면 Safari 가 상태바·툴바를 검게 칠함 → 웹은 배경화면 아래 끝 색
+  rootWeb: { backgroundColor: WALLPAPER_BOTTOM },
+  edge: { position: 'absolute', left: 0, right: 0, height: EDGE },
   // Figma 날짜·시간·스와이프 문구는 iOS 시스템 폰트(Inter/SF) — 시스템 기본 폰트 사용
   date: { position: 'absolute', top: 78, left: 0, right: 0, textAlign: 'center', fontSize: 18, letterSpacing: -0.5, color: colors.white },
   time: {
