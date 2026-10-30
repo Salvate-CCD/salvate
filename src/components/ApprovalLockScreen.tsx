@@ -16,6 +16,9 @@ type Props = {
 };
 
 const SLIDE_MS = 450;
+// 배경화면(wallpaper.jpg) 위·아래 끝 색 — 웹에서 Safari 상태바·툴바 뒤까지 잠금화면처럼 보이게
+const WALLPAPER_TOP = '#A8DBE4';
+const WALLPAPER_BOTTOM = '#7ABCCB';
 const useNativeDriver = Platform.OS !== 'web';
 
 // Figma "회원 승인" — 승인 푸시 알림이 와 있는 iOS 잠금화면. 위에서 스르륵 내려와 열림.
@@ -36,6 +39,21 @@ export function ApprovalLockScreen({
     y.setValue(-height);
     Animated.timing(y, { toValue: 0, duration: SLIDE_MS, easing: Easing.out(Easing.cubic), useNativeDriver }).start();
   }, [visible, height, y]);
+
+  // 웹: 모바일 Safari 는 상태바·주소창·툴바 뒤에 html/body 배경을 그림 → 떠 있는 동안 배경화면 색으로 바꿨다가 닫히면 복원
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !visible) return;
+    const targets = [document.documentElement, document.body];
+    const prev = targets.map((el) => [el.style.backgroundColor, el.style.backgroundImage]);
+    for (const el of targets) {
+      el.style.backgroundColor = WALLPAPER_BOTTOM;
+      el.style.backgroundImage = `linear-gradient(${WALLPAPER_TOP}, ${WALLPAPER_BOTTOM})`;
+    }
+    return () =>
+      targets.forEach((el, i) => {
+        [el.style.backgroundColor, el.style.backgroundImage] = prev[i];
+      });
+  }, [visible]);
 
   const open = () => {
     Animated.timing(y, { toValue: -height, duration: SLIDE_MS * 0.7, easing: Easing.in(Easing.cubic), useNativeDriver }).start(
