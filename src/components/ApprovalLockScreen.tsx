@@ -1,7 +1,18 @@
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { colors, fonts, radius, typography } from '@/theme/tokens';
 
 type Props = {
@@ -19,7 +30,14 @@ const SLIDE_MS = 450;
 // 배경화면(wallpaper.jpg) 위·아래 끝 색 — 웹에서 Safari 상태바·툴바 뒤까지 잠금화면처럼 보이게
 const WALLPAPER_TOP = '#A8DBE4';
 const WALLPAPER_BOTTOM = '#7ABCCB';
-const useNativeDriver = Platform.OS !== 'web';
+const isWeb = Platform.OS === 'web';
+const useNativeDriver = !isWeb;
+
+// 웹: 모바일 Safari 는 하단 주소창·툴바를 보이는 영역(100dvh) 밖에 겹쳐 그림.
+// 잠금화면을 툴바 뒤까지 닿는 가장 큰 높이(100lvh)로 늘려 배경화면이 툴바 뒤까지 보이게 하고,
+// 아래 기준 요소는 툴바에 가려지지 않게 늘어난 만큼(100lvh − 100dvh) 올림
+const webFullHeight = isWeb ? ({ position: 'fixed', top: 0, left: 0, right: 0, height: '100lvh' } as unknown as ViewStyle) : null;
+const aboveToolbar = (bottom: number) => (isWeb ? ({ bottom: `calc(${bottom}px + 100lvh - 100dvh)` } as unknown as { bottom: number }) : null);
 
 // Figma "회원 승인" — 승인 푸시 알림이 와 있는 iOS 잠금화면. 위에서 스르륵 내려와 열림.
 // 도움 요청 게시 후 "Someone offered to help" 알림(1608:33987)도 같은 레이아웃에 문구만 바꿔 사용.
@@ -32,15 +50,20 @@ export function ApprovalLockScreen({
   message = 'Welcome to Sálvate! Tap to get started.',
 }: Props) {
   const { height } = useWindowDimensions();
-  const y = useRef(new Animated.Value(-height)).current;
+  // 0 = 화면 위로 숨음, 1 = 다 내려옴
+  const shown = useRef(new Animated.Value(0)).current;
+  // 웹은 잠금화면 높이(100lvh)가 창 높이보다 클 수 있으므로 자기 높이 기준(%)으로 숨김
+  const translateY = isWeb
+    ? shown.interpolate({ inputRange: [0, 1], outputRange: ['-100%', '0%'] })
+    : shown.interpolate({ inputRange: [0, 1], outputRange: [-height, 0] });
 
   useEffect(() => {
     if (!visible) return;
-    y.setValue(-height);
-    Animated.timing(y, { toValue: 0, duration: SLIDE_MS, easing: Easing.out(Easing.cubic), useNativeDriver }).start();
-  }, [visible, height, y]);
+    shown.setValue(0);
+    Animated.timing(shown, { toValue: 1, duration: SLIDE_MS, easing: Easing.out(Easing.cubic), useNativeDriver }).start();
+  }, [visible, shown]);
 
-  // 웹: 모바일 Safari 는 상태바·주소창·툴바 뒤에 html/body 배경을 그림 → 떠 있는 동안 배경화면 색으로 바꿨다가 닫히면 복원
+  // 웹: 상태바 뒤(와 lvh 미지원 브라우저의 툴바 뒤)는 html/body 배경이 보임 → 떠 있는 동안 배경화면 색으로 바꿨다가 닫히면 복원
   useEffect(() => {
     if (Platform.OS !== 'web' || !visible) return;
     const targets = [document.documentElement, document.body];
@@ -56,14 +79,14 @@ export function ApprovalLockScreen({
   }, [visible]);
 
   const open = () => {
-    Animated.timing(y, { toValue: -height, duration: SLIDE_MS * 0.7, easing: Easing.in(Easing.cubic), useNativeDriver }).start(
+    Animated.timing(shown, { toValue: 0, duration: SLIDE_MS * 0.7, easing: Easing.in(Easing.cubic), useNativeDriver }).start(
       () => onOpenNotification(),
     );
   };
 
   return (
     <Modal transparent visible={visible} animationType="none" statusBarTranslucent onRequestClose={open}>
-      <Animated.View style={[styles.root, { transform: [{ translateY: y }] }]}>
+      <Animated.View style={[styles.root, webFullHeight, { transform: [{ translateY }] }]}>
         <Image source={require('../../assets/figma/lockscreen/wallpaper.jpg')} style={StyleSheet.absoluteFill} contentFit="cover" />
 
         <Text style={styles.date}>{date}</Text>
@@ -88,9 +111,9 @@ export function ApprovalLockScreen({
           <Text style={styles.now}>now</Text>
         </Pressable>
 
-        <Image source={require('../../assets/figma/lockscreen/flashlight-button.svg')} style={[styles.quickButton, { left: 48 }]} />
-        <Image source={require('../../assets/figma/lockscreen/camera-button.svg')} style={[styles.quickButton, { right: 48 }]} />
-        <Text style={styles.swipe}>swipe up to open</Text>
+        <Image source={require('../../assets/figma/lockscreen/flashlight-button.svg')} style={[styles.quickButton, aboveToolbar(52), { left: 48 }]} />
+        <Image source={require('../../assets/figma/lockscreen/camera-button.svg')} style={[styles.quickButton, aboveToolbar(52), { right: 48 }]} />
+        <Text style={[styles.swipe, aboveToolbar(63)]}>swipe up to open</Text>
       </Animated.View>
     </Modal>
   );
