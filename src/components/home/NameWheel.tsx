@@ -49,7 +49,7 @@ const REACH = 570;
 
 // Figma "Interaction" > "Names" — 고정된 이름 휠. 회전 없이 손가락으로 끌어서(drag) 둘러봄 + Help Activity 팝오버
 export function NameWheel({ firstName, overlay, bottomInset, hideMessageButton }: Props) {
-  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const [pan] = useState(() => new Animated.ValueXY({ x: 0, y: 0 }));
   const [size, setSize] = useState({ width: 390, height: 763 });
   const [selected, setSelected] = useState<Selected | null>(null);
 
@@ -66,6 +66,8 @@ export function NameWheel({ firstName, overlay, bottomInset, hideMessageButton }
       minY: -(REACH - (size.height - CENTER_Y)),
       maxY: REACH - CENTER_Y,
     };
+    // PanResponder 핸들러는 터치 이벤트 때만 호출되고 렌더 중에는 실행되지 않음 → react-hooks/refs·purity 오탐
+    // eslint-disable-next-line react-hooks/refs
     return PanResponder.create({
       // 이름 카드(Pressable)가 먼저 터치를 받고, 빈 곳을 누르면 휠이 받음
       onStartShouldSetPanResponder: () => true,
@@ -92,6 +94,7 @@ export function NameWheel({ firstName, overlay, bottomInset, hideMessageButton }
       },
       onPanResponderRelease: () => {
         const s = gesture.current;
+        // eslint-disable-next-line react-hooks/purity
         s.releasedAt = Date.now();
         // 빈 곳 탭 → 팝오버 닫기. 손을 떼면 그 자리에 멈춤(관성 없음)
         if (!s.moved) setSelected(null);

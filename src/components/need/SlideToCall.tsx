@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, PanResponder, Platform, StyleSheet, Text, View } from 'react-native';
+import { Animated, PanResponder, Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { colors, fonts } from '@/theme/tokens';
 
 // Figma "Slide" — Slide_Background 280×68, 손잡이(Slide_Slidder_Background) 60×60
@@ -12,6 +12,9 @@ const INSET = 4; // 손잡이는 배경 안쪽 4px
 const MAX = TRACK_W - INSET * 2 - KNOB; // 212 — slide default(x 59) → slide after(x 271)
 
 const useNative = Platform.OS !== 'web';
+
+// 웹에서만 손잡이에 'grab' 커서 — RN 타입(CursorValue)은 'auto' | 'pointer' 만 허용하므로 따로 둠
+const webGrabCursor = Platform.OS === 'web' ? ({ cursor: 'grab' } as unknown as ViewStyle) : null;
 
 type Props = { onComplete: () => void };
 
@@ -33,7 +36,9 @@ export function SlideToCall({ onComplete }: Props) {
     }, [x]),
   );
 
-  // 핸들러는 ref 만 읽으므로 한 번만 만듦
+  // 핸들러는 ref 만 읽으므로 한 번만 만듦.
+  // 핸들러는 터치 이벤트 때만 호출되고 렌더 중에는 실행되지 않음 → react-hooks/refs 오탐
+  // eslint-disable-next-line react-hooks/refs
   const [pan] = useState(() =>
     PanResponder.create({
       onStartShouldSetPanResponder: () => !done.current,
@@ -89,7 +94,7 @@ export function SlideToCall({ onComplete }: Props) {
         {...pan.panHandlers}
         accessibilityRole="adjustable"
         accessibilityLabel="Slide to talk with AI"
-        style={[styles.knob, { transform: [{ translateX: x }] }]}
+        style={[styles.knob, webGrabCursor, { transform: [{ translateX: x }] }]}
       >
         {/* 웹에서 <img> 기본 드래그가 끼어들지 않도록 이미지는 터치를 받지 않음 */}
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: before }]}>
@@ -127,7 +132,7 @@ const styles = StyleSheet.create({
     color: colors.labelAlternative,
   },
   arrows: { position: 'absolute', left: 240, top: 24, width: 20, height: 20 },
-  knob: { position: 'absolute', left: INSET, top: INSET, width: KNOB, height: KNOB, cursor: 'grab' },
+  knob: { position: 'absolute', left: INSET, top: INSET, width: KNOB, height: KNOB },
   knobBg: { position: 'absolute', left: 0, top: 0, width: KNOB, height: KNOB },
   // icons/Communicate/phone-telephone 32×32, 손잡이 안 (14, 14)
   phone: { position: 'absolute', left: 14, top: 14, width: 32, height: 32 },

@@ -45,7 +45,7 @@ export default function WhatsApp() {
   const params = useLocalSearchParams<{ flow?: string }>();
   const flow: WhatsAppFlow = params.flow === 'login' ? 'login' : 'signup';
   const [splash, setSplash] = useState(true);
-  const fade = useRef(new Animated.Value(0)).current;
+  const [fade] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const t = setTimeout(() => {

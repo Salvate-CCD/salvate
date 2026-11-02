@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
@@ -9,7 +9,7 @@ import { TitleBlock } from '@/components/TitleBlock';
 // Figma "왓츠앱 인증 완료" — 3개 프레임(213px → 213px → 265px)을 천천히 오가는 체크 그래픽
 export default function Verified() {
   const { flow } = useLocalSearchParams<{ flow?: 'signup' | 'login' }>();
-  const t = useRef(new Animated.Value(0)).current;
+  const [t] = useState(() => new Animated.Value(0));
 
   const onContinue = () => {
     // 로그인 완료 → 홈

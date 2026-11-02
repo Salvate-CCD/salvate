@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -44,7 +44,7 @@ export function ApprovalLockScreen({
 }: Props) {
   const { height } = useWindowDimensions();
   // 0 = 화면 위로 숨음, 1 = 다 내려옴
-  const shown = useRef(new Animated.Value(0)).current;
+  const [shown] = useState(() => new Animated.Value(0));
   // 웹은 창 크기가 바뀌어도 맞도록 자기 높이 기준(%)으로 숨김
   const translateY = isWeb
     ? shown.interpolate({ inputRange: [0, 1], outputRange: ['-100%', '0%'] })
