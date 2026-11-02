@@ -19,7 +19,7 @@ export function useNavHeight() {
 type Tab = 'home' | 'need' | 'give' | 'services' | 'settings';
 
 // 아이콘 SVG 에 색이 들어 있어서 선택(초록 #457D64)/비선택(회색 #7F7F7F) 파일을 따로 둠.
-// give / settings 는 아직 선택 상태 디자인이 없어 회색만 있음
+// settings 는 아직 선택 상태 디자인이 없어 회색만 있음
 const TABS: { key: Tab; label: string; icon: ImageSource; activeIcon?: ImageSource }[] = [
   {
     key: 'home',
@@ -33,7 +33,12 @@ const TABS: { key: Tab; label: string; icon: ImageSource; activeIcon?: ImageSour
     icon: require('../../../assets/figma/home/nav-need.svg'),
     activeIcon: require('../../../assets/figma/need/nav-need-active.svg'),
   }, // icons/Health/love-and-help
-  { key: 'give', label: 'give', icon: require('../../../assets/figma/home/nav-give.svg') }, // icons/Travels/enquire
+  {
+    key: 'give',
+    label: 'give',
+    icon: require('../../../assets/figma/home/nav-give.svg'),
+    activeIcon: require('../../../assets/figma/give/nav-give-active.svg'),
+  }, // icons/Travels/enquire
   {
     key: 'services',
     label: 'services',
@@ -58,8 +63,9 @@ export function BottomNavigation({ selected }: { selected: Tab }) {
     if (tab === selected) return;
     if (tab === 'home') router.replace('/home');
     else if (tab === 'need') router.replace('/need');
+    else if (tab === 'give') router.replace('/give');
     else if (tab === 'services') router.replace('/services');
-    // TODO: give / settings 화면이 생기면 router 로 연결
+    // TODO: settings 화면이 생기면 router 로 연결
   };
 
   return (

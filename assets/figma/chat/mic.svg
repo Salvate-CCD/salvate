@@ -1,0 +1,27 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="&#236;&#157;&#140;&#236;&#132;&#177;&#235;&#169;&#148;&#236;&#139;&#156;&#236;&#167;&#128; &#235;&#178;&#132;&#237;&#138;&#188;">
+<g id="Button Background" filter="url(#filter0_i_0_242)">
+<circle cx="14" cy="14" r="14" fill="#457D64"/>
+</g>
+<g id="icons/Music/voice" clip-path="url(#clip0_0_242)">
+<path id="Vector" d="M14 7.33334C15.2887 7.33334 16.3333 8.37801 16.3333 9.66667V14C16.3333 15.2887 15.2887 16.3333 14 16.3333C12.7113 16.3333 11.6667 15.2887 11.6667 14V9.66667C11.6667 8.37801 12.7113 7.33334 14 7.33334Z" stroke-linejoin="round" stroke="white"/>
+<path id="Vector_2" d="M8.99999 13.6667C8.99999 16.4281 11.2386 18.6667 14 18.6667C16.7614 18.6667 19 16.4281 19 13.6667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/>
+<path id="Vector_3" d="M14 18.6667V20.6667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/>
+</g>
+</g>
+<defs>
+<filter id="filter0_i_0_242" x="0" y="0" width="28" height="28" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset/>
+<feGaussianBlur stdDeviation="4"/>
+<feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0.592157 0 0 0 0 0.72549 0 0 0 0 0.662745 0 0 0 1 0"/>
+<feBlend mode="normal" in2="shape" result="effect1_innerShadow_0_242"/>
+</filter>
+<clipPath id="clip0_0_242">
+<rect width="16" height="16" fill="white" transform="translate(5.99999 6)"/>
+</clipPath>
+</defs>
+</svg>

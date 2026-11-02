@@ -5,6 +5,7 @@ import { ApprovalLockScreen } from '@/components/ApprovalLockScreen';
 import { ApprovedSheet } from '@/components/ApprovedSheet';
 import { Button } from '@/components/Button';
 import { Dialog } from '@/components/Dialog';
+import { Logo } from '@/components/Logo';
 import { Screen } from '@/components/Screen';
 import { openWhatsAppVerification } from '@/lib/whatsapp';
 import { isAccountApproved, markAccountApproved } from '@/state/account';
@@ -44,8 +45,10 @@ export default function Welcome() {
 
   return (
     <Screen>
-      {/* TODO: 로고 — Figma 메모 "로고 넣어야 함". 로고 에셋이 확정되면 이 영역에 배치 */}
-      <View style={styles.logoArea} />
+      {/* Figma "Logo" — 상태바 아래 ~ 버튼 위 영역 가운데보다 6.5px 위 (프레임 기준 top 278) */}
+      <View style={styles.logoArea}>
+        <Logo />
+      </View>
 
       <View style={styles.actions}>
         <Button label="Continue with WhatsApp" onPress={onLoginPress} />
@@ -68,6 +71,6 @@ export default function Welcome() {
 }
 
 const styles = StyleSheet.create({
-  logoArea: { flex: 1 },
+  logoArea: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 13 },
   actions: { paddingHorizontal: 20, paddingBottom: 22, gap: 10 },
 });

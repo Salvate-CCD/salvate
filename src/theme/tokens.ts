@@ -5,6 +5,7 @@ export const colors = {
   deepGreen400: '#7BA591',
   secondaryLight: '#AFE6D5',
   secondaryNormal: '#6CD2B6',
+  secondaryBackground: '#EBF9F5', // Semantic/Secondary/Background (Mint/50)
 
   labelStrong: '#121212',
   labelNormal: '#292929',
@@ -35,6 +36,7 @@ export const colors = {
   white: '#FFFFFF',
   black: '#000000',
   dim: '#00000085', // Material/Dim 01
+  dimLight: '#00000029', // Material/Dim 03
 } as const;
 
 export const radius = {
