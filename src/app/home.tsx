@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { ApprovalLockScreen } from '@/components/ApprovalLockScreen';
 import { BottomNavigation, useNavHeight } from '@/components/home/BottomNavigation';
 import { MessageButton } from '@/components/home/MessageButton';
@@ -16,17 +16,17 @@ const FALLBACK_NAME = 'José';
 // 도움 요청 게시 후 홈이 보인 뒤 잠금화면 알림이 내려오기까지의 시간
 const OFFER_NOTIFICATION_MS = 1000;
 
-// Figma "Home(메인화면)" > "홈_메인페이지" (1608:34179 / 34369 / 34559)
+// Figma "Home(메인화면)" > "홈_메인페이지" (1935:44135 / 44795) + 메시지 목록 (1935:44355)
 export default function Home() {
   const { draft } = useSignup();
   const navHeight = useNavHeight();
   const firstName = draft.firstName.trim() || FALLBACK_NAME;
-  const { width } = useWindowDimensions();
 
-  // 도움 요청 게시 직후(/home?posted=1) — Figma "Post Modal 애니메이션용 연막" 1608:33799 → 1608:33987
-  // 메시지 버튼이 제목 옆에 있는 홈을 잠깐 보여준 뒤, "Someone offered to help" 알림이 온 잠금화면이 내려옴
+  // 도움 요청 게시 직후(/home?posted=1) — Figma "Post Modal 애니메이션용 연막" (1935:43195 → 1935:43383)
+  // 홈을 잠깐 보여준 뒤 "Someone offered to help" 알림이 온 잠금화면이 내려옴
   const posted = useLocalSearchParams<{ posted?: string }>().posted === '1';
   const [showOffer, setShowOffer] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
   useEffect(() => {
     if (!posted) return;
     const t = setTimeout(() => setShowOffer(true), OFFER_NOTIFICATION_MS);
@@ -40,7 +40,7 @@ export default function Home() {
         <NameWheel
           firstName={firstName}
           bottomInset={navHeight}
-          hideMessageButton={posted}
+          onInteract={() => setMessagesOpen(false)}
           overlay={
             // Figma "Title & Descriotion": 휠 위에 덮이는 #F5F5F5 → 투명 그라데이션 (70%부터)
             <View pointerEvents="none" style={styles.titleLayer}>
@@ -57,17 +57,14 @@ export default function Home() {
                 style={styles.title}
                 descriptionStyle={styles.description}
               />
-              {posted ? (
-                // Figma 1608:33799: 메시지 버튼이 제목 영역 (231, 37)
-                <MessageButton
-                  style={[styles.postedMessage, { left: width / 2 - 195 + 231 }]}
-                  onPress={() => {
-                    // TODO: 메시지 화면 연결
-                  }}
-                />
-              ) : null}
             </View>
           }
+        />
+        {/* Figma (314, 671) — 오른쪽 20, 내비게이션 위 20. 누르면 대화 목록이 버튼 위에 뜸 */}
+        <MessageButton
+          open={messagesOpen}
+          onPress={() => setMessagesOpen((v) => !v)}
+          style={[styles.message, { bottom: navHeight + 20 }]}
         />
         <BottomNavigation selected="home" />
       </View>
@@ -97,6 +94,5 @@ const styles = StyleSheet.create({
   title: { paddingTop: 26 },
   // Figma Description 텍스트는 y 155 (제목 아래 10px) — 기본 간격보다 2px 위
   description: { marginTop: -2 },
-  // Figma y 37 → 상태바 아래 -10
-  postedMessage: { position: 'absolute', top: -10 },
+  message: { position: 'absolute', right: 20 },
 });
