@@ -67,7 +67,7 @@ const CIRCLE_VISIBLE_TOP = 23;
 const CIRCLE_MIN_GAP = 12;
 
 function InvitationPage({ size, onNext }: { size: PageSize; onNext: () => void }) {
-  const pulse = useRef(new Animated.Value(0)).current;
+  const [pulse] = useState(() => new Animated.Value(0));
   const [titleBottom, setTitleBottom] = useState(0);
 
   // 화면이 낮으면(예: 모바일 Safari 툴바) 아래 기준 동심원이 설명 글자를 덮음 → 남은 공간에 맞게 아래 기준으로 축소
