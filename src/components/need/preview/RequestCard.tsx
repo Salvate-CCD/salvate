@@ -1,7 +1,7 @@
 import { Image, type ImageSource } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, insetGlow, radius, typography } from '@/theme/tokens';
-import type { HelpRequest } from './mockRequest';
+import type { HelpRequest, Urgency } from './mockRequest';
 
 // Figma 의 라벨 아이콘 뒤에 깔린 흐린 "초록색 원" / "분홍색 원" (blur 포함 SVG 이므로 SVG 크기·위치 그대로)
 type Deco = { source: ImageSource; left: number; top: number; width: number; height: number };
@@ -37,14 +37,25 @@ const LABELS = {
   },
 } satisfies Record<string, { icon: ImageSource; decos: Deco[] }>;
 
-// Figma "Card/AI Results" (type=장소 2개일때)
+// Figma "Badge/Urgency Badge" 색 — Primitive/Red·Yellow 50 배경 + 500 글자.
+// High / Low 배지는 아직 디자인이 없어 Give 탭 색(Red/300, Status/Positive)을 따름
+const URGENCY_TONE: Record<Urgency, { bg: string; fg: string }> = {
+  Critical: { bg: '#FBE6E6', fg: colors.statusNegative },
+  High: { bg: '#FBE6E6', fg: '#E75454' },
+  Moderate: { bg: '#FFFAE5', fg: '#CBA60E' },
+  Low: { bg: colors.secondaryBackground, fg: colors.statusPositive },
+};
+const TAG_TONE = URGENCY_TONE.Critical;
+
+// Figma "Card/AI Results" (type=장소 2개일때 / 장소 1개일때)
 export function RequestCard({ request }: { request: HelpRequest }) {
+  const { places } = request;
   return (
     <View style={styles.card}>
       <View style={styles.tags}>
         <View style={styles.field}>
           <Text style={styles.caption}>Urgency Level</Text>
-          <Badge label={request.urgency} />
+          <Badge label={request.urgency} tone={URGENCY_TONE[request.urgency]} />
         </View>
         <View style={styles.field}>
           <Text style={styles.caption}>Help Category</Text>
@@ -75,35 +86,44 @@ export function RequestCard({ request }: { request: HelpRequest }) {
         <View style={styles.field}>
           <Label kind="time" text="Time" />
           <View style={styles.data}>
-            <Badge label={request.time.tag} />
+            {request.time.tag ? <Badge label={request.time.tag} tone={TAG_TONE} /> : null}
             <Text style={styles.value}>{request.time.value}</Text>
           </View>
         </View>
         <View style={styles.field}>
           <Label kind="date" text="Date" />
           <View style={styles.data}>
-            <Badge label={request.date.tag} />
+            {request.date.tag ? <Badge label={request.date.tag} tone={TAG_TONE} /> : null}
             <Text style={styles.value}>{request.date.value}</Text>
           </View>
         </View>
-        <View style={styles.field}>
-          <Label kind="pickup" text="Pickup Location" />
-          <Text style={styles.value}>{request.pickup}</Text>
-        </View>
-        <View style={styles.field}>
-          <Label kind="dropoff" text="Drop-off Location" />
-          <Text style={styles.value}>{request.dropoff}</Text>
-        </View>
+        {'location' in places ? (
+          <View style={styles.field}>
+            <Label kind="pickup" text="Location" />
+            <Text style={styles.value}>{places.location}</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.field}>
+              <Label kind="pickup" text="Pickup Location" />
+              <Text style={styles.value}>{places.pickup}</Text>
+            </View>
+            <View style={styles.field}>
+              <Label kind="dropoff" text="Drop-off Location" />
+              <Text style={styles.value}>{places.dropoff}</Text>
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
 }
 
 // Figma "Badge/Urgency Badge"
-function Badge({ label }: { label: string }) {
+function Badge({ label, tone }: { label: string; tone: { bg: string; fg: string } }) {
   return (
-    <View style={styles.badge}>
-      <Text style={styles.badgeLabel}>{label}</Text>
+    <View style={[styles.badge, { backgroundColor: tone.bg }]}>
+      <Text style={[styles.badgeLabel, { color: tone.fg }]}>{label}</Text>
     </View>
   );
 }
@@ -147,9 +167,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     justifyContent: 'center',
     borderRadius: radius.full,
-    backgroundColor: '#FBE6E6', // Primitive/Red/50
   },
-  badgeLabel: { ...typography.body1Medium, color: colors.statusNegative, textAlign: 'center' },
+  badgeLabel: { ...typography.body1Medium, textAlign: 'center' },
   description: { gap: 16, alignSelf: 'stretch', alignItems: 'flex-start' },
   read: {
     height: 32,

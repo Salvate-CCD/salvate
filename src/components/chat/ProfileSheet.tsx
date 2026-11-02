@@ -2,15 +2,14 @@ import { Image } from 'expo-image';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '@/theme/tokens';
-import { MARIA_PROFILE } from './mariaChat';
+import type { Profile } from './contacts';
 
-type Props = { visible: boolean; onClose: () => void };
+type Props = { profile: Profile; visible: boolean; onClose: () => void };
 
 // Figma "도움 요청_채팅_이름 터치했을 때 (프로필)" (1935:42547) — 헤더의 이름을 누르면
 // 딤 위에 프로필 카드(350×177, 상태바 아래 3)가 뜸. 위쪽 화살표나 딤을 누르면 닫힘
-export function ProfileSheet({ visible, onClose }: Props) {
+export function ProfileSheet({ profile: p, visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const p = MARIA_PROFILE;
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.dim} onPress={onClose} accessibilityLabel="Close profile" />

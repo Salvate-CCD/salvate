@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, fonts } from '@/theme/tokens';
-import { formatDuration, type ChatMessage } from './mariaChat';
+import { formatDuration, type ChatMessage } from './contacts';
 
 // Figma 말풍선은 폭이 214 로 고정 (화면 좌우 20 / 반대쪽 156)
 export const BUBBLE_WIDTH = 214;

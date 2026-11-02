@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View, type TextStyle } from 'react-native';
 import { colors, fonts } from '@/theme/tokens';
-import { formatDuration } from './mariaChat';
+import { formatDuration } from './contacts';
 
 type Props = {
   onSendText: (text: string) => void;
