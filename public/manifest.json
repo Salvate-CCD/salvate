@@ -1,0 +1,14 @@
+{
+  "short_name": "Sálvate",
+  "name": "Sálvate",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#FAFAFA",
+  "background_color": "#FAFAFA"
+}
