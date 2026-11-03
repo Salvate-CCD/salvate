@@ -88,6 +88,7 @@ export default function Home() {
       </View>
       <ApprovalLockScreen
         visible={showOffer}
+        appearance="help"
         date="Monday, June 3"
         time="9:41"
         title="Someone offered to help"
