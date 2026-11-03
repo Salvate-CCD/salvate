@@ -19,6 +19,8 @@ export type WheelNode = {
 
 export type Ring = {
   id: RingId;
+  /** 휠 중심에서 이 링까지 거리 — 손가락이 닿은 링을 고를 때 사용 */
+  r: number;
   nodes: WheelNode[];
 };
 
@@ -50,6 +52,7 @@ const RINGS: RingSpec[] = [
 // 그리는 순서 = Figma 레이어 순서 (바깥 링이 맨 아래, 첫번째 링이 맨 위)
 export const RINGS_BOTTOM_UP: Ring[] = [...RINGS].reverse().map(({ id, cx, cy, r, names }) => ({
   id,
+  r,
   nodes: names.map((name, i) => {
     const deg = i * (360 / names.length);
     const rad = (deg * Math.PI) / 180;
