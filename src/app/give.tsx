@@ -57,7 +57,7 @@ export default function GiveHelp() {
         showsVerticalScrollIndicator={false}
       >
         {REQUESTS[urgency].map((item) => (
-          <RequestListCard key={item.id} item={item} onPress={() => router.push('/give/request')} />
+          <RequestListCard key={item.id} item={item} onPress={() => router.push({ pathname: '/give/request', params: { id: item.id } })} />
         ))}
       </ScrollView>
 

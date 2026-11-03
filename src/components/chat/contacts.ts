@@ -83,4 +83,12 @@ export const CONTACTS: Record<string, Contact> = {
     matchActions: false,
     emptyText: 'Send a message to get started.',
   },
+  // Carlos 채팅은 Figma 에 없어 Miguel 의 빈 채팅과 같게 둠
+  carlos: {
+    name: 'Carlos',
+    initialMessages: () => [],
+    replies: [],
+    matchActions: false,
+    emptyText: 'Send a message to get started.',
+  },
 };
