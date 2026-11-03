@@ -2,11 +2,13 @@
 //  - Maria: Figma "도움 요청_채팅" (1935:42314 ~ 42946) — 내 도움 요청에 도움을 제안한 사람
 //  - Miguel: Figma "도움 제공_채팅" (1935:44067 / 44089) — 내가 도움을 주려는 사람
 
-export type Sender = 'them' | 'me';
+export type Sender = 'them' | 'me' | 'system';
 
 export type ChatMessage =
   | { id: string; from: Sender; kind: 'text'; text: string; at: Date }
-  | { id: string; from: Sender; kind: 'voice'; seconds: number; at: Date };
+  | { id: string; from: Sender; kind: 'voice'; seconds: number; at: Date }
+  /** Figma 분홍 "Match Confirmed." 표시 */
+  | { id: string; from: 'system'; kind: 'notice'; text: string; at: Date };
 
 // Figma 예시 시각 9:41 am 에 온 첫 두 메시지
 function todayAt(hour: number, minute: number) {
@@ -63,6 +65,8 @@ export type Contact = {
   profile?: Profile;
   /** 대화가 없을 때 가운데 문구 */
   emptyText?: string;
+  /** 매칭 확정 뒤 진행 흐름의 잠금화면 알림 문구 (Figma 1967:19898 / 1967:19943) */
+  helpPushes?: { departed: string; arrived: string };
   /** 뒤로가기 — 알림에서 바로 들어온 채팅은 홈으로, 나머지는 이전 화면으로 */
   backTo?: '/home';
 };
@@ -74,6 +78,10 @@ export const CONTACTS: Record<string, Contact> = {
     replies: ['I’m glad I can help.', 'I should be there in about 10 minutes!'],
     matchActions: true,
     profile: MARIA_PROFILE,
+    helpPushes: {
+      departed: 'Maria has picked up your child and is expected to arrive in about 15 minutes.',
+      arrived: 'I’m here!',
+    },
     backTo: '/home',
   },
   miguel: {

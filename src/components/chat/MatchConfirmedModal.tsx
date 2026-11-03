@@ -2,11 +2,11 @@ import { Image } from 'expo-image';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, typography } from '@/theme/tokens';
 
-type Props = { visible: boolean; onClose: () => void };
+type Props = { visible: boolean; onClose: () => void; title?: string; message?: string };
 
 // Figma "도움 요청_채팅_매칭수락 확인 모달" (1935:42790) — 체크 아이콘 + "Match Confirmed!".
-// Figma 메모: 딤을 누르면 원래 화면으로
-export function MatchConfirmedModal({ visible, onClose }: Props) {
+// 도움 완료 확인(1967:20826 "Completion Confirmed!")도 같은 틀에 문구만 바꿔 사용. Figma 메모: 딤을 누르면 원래 화면으로
+export function MatchConfirmedModal({ visible, onClose, title = 'Match Confirmed!', message }: Props) {
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.dim} onPress={onClose} accessibilityLabel="Close">
@@ -15,7 +15,10 @@ export function MatchConfirmedModal({ visible, onClose }: Props) {
           <View style={styles.iconSlot}>
             <Image source={require('../../../assets/figma/chat/match-check.svg')} style={styles.icon} />
           </View>
-          <Text style={[typography.body1Bold, styles.title]}>Match Confirmed!</Text>
+          <View style={styles.text}>
+            <Text style={[typography.body1Bold, styles.title]}>{title}</Text>
+            {message ? <Text style={[typography.label1Regular, styles.title]}>{message}</Text> : null}
+          </View>
         </View>
       </Pressable>
     </Modal>
@@ -37,5 +40,6 @@ const styles = StyleSheet.create({
   },
   iconSlot: { width: 42, height: 36 },
   icon: { position: 'absolute', left: -1.5, top: -4, width: 45, height: 40 },
+  text: { width: '100%', gap: 12 },
   title: { width: '100%', textAlign: 'center', color: colors.labelNormal },
 });

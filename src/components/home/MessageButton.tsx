@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { Fragment } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { isChatRemoved } from '@/components/chat/removedChats';
 import { colors, fonts } from '@/theme/tokens';
 
 type Conversation = { name: string; title: string; unread: boolean };
@@ -54,7 +55,7 @@ function MessageList() {
   return (
     <View style={styles.list}>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {CONVERSATIONS.map((c, i) => (
+        {CONVERSATIONS.filter((c) => !isChatRemoved(c.name)).map((c, i) => (
           <Fragment key={c.name}>
             {i > 0 ? (
               <Image source={require('../../../assets/figma/home/message-list-divider.svg')} style={styles.divider} />

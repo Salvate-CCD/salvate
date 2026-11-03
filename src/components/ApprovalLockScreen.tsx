@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Animated,
   Easing,
@@ -23,6 +23,12 @@ type Props = {
   time?: string;
   title?: string;
   message?: string;
+  /** help: 도움 진행 알림(1967:19898 / 1967:19943) — 검은 글자 + 분홍 로고 */
+  appearance?: 'approval' | 'help';
+  /** 알림 안쪽 아래에 더 그릴 내용 (진행 막대) */
+  footer?: ReactNode;
+  /** 알림 높이 — 기본 80 */
+  notificationHeight?: number;
 };
 
 const SLIDE_MS = 450;
@@ -41,7 +47,12 @@ export function ApprovalLockScreen({
   time = '10:41',
   title = 'Your account is approved!',
   message = 'Welcome to Sálvate! Tap to get started.',
+  appearance = 'approval',
+  footer,
+  notificationHeight,
 }: Props) {
+  const help = appearance === 'help';
+  const textColor = help ? styles.black : styles.white;
   const { height } = useWindowDimensions();
   // 0 = 화면 위로 숨음, 1 = 다 내려옴
   const [shown] = useState(() => new Animated.Value(0));
@@ -90,19 +101,24 @@ export function ApprovalLockScreen({
             accessibilityRole="button"
             accessibilityLabel={`${title} ${message}`}
             onPress={open}
-            style={({ pressed }) => [styles.notification, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.notification, notificationHeight ? { height: notificationHeight } : null, pressed && { opacity: 0.85 }]}
           >
             <BlurView intensity={30} tint="light" style={styles.platterBlur} />
             <View style={styles.appIcon}>
-              <Image source={require('../../assets/figma/lockscreen/logo-symbol-white.svg')} style={styles.appSymbol} />
+              {help ? (
+                <Image source={require('../../assets/figma/lockscreen/logo-symbol-accent.svg')} style={styles.appSymbolAccent} />
+              ) : (
+                <Image source={require('../../assets/figma/lockscreen/logo-symbol-white.svg')} style={styles.appSymbol} />
+              )}
             </View>
             <View style={styles.content}>
-              <Text style={[typography.body1Bold, styles.white]} numberOfLines={1}>
+              <Text style={[typography.body1Bold, textColor]} numberOfLines={1}>
                 {title}
               </Text>
-              <Text style={[styles.caption, styles.white]}>{message}</Text>
+              <Text style={[styles.caption, textColor]}>{message}</Text>
             </View>
             <Text style={styles.now}>now</Text>
+            {footer}
           </Pressable>
 
           <Image source={require('../../assets/figma/lockscreen/flashlight-button.svg')} style={[styles.quickButton, { left: 48 }]} />
@@ -161,10 +177,13 @@ const styles = StyleSheet.create({
     boxShadow: 'inset 0px 0px 8px 0px #5AAE97', // Mint/500
   },
   appSymbol: { width: 20, height: 7.54 },
+  // Figma Logo(27×17) 의 Symbol 영역 — 아이콘 기준 (4.33, 7.25)
+  appSymbolAccent: { position: 'absolute', left: 4.33, top: 7.25, width: 16.3, height: 10.23 },
   content: { position: 'absolute', left: 58, right: 18, top: 19, gap: 5 },
   // Figma "Caption/Caption 1/R"
   caption: { fontFamily: fonts.robotoRegular, fontSize: 12, lineHeight: 15 },
   white: { color: colors.white },
+  black: { color: colors.black },
   now: { position: 'absolute', top: 13, right: 15, fontSize: 13, letterSpacing: -0.31, color: colors.white, opacity: 0.72 },
   quickButton: { position: 'absolute', bottom: 52, width: 52, height: 51.97 },
   swipe: { position: 'absolute', bottom: 63, left: 0, right: 0, textAlign: 'center', fontSize: 17, letterSpacing: -0.408, color: colors.white, opacity: 0.64 },

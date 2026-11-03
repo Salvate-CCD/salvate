@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ApprovalLockScreen } from '@/components/ApprovalLockScreen';
+import { restoreChat } from '@/components/chat/removedChats';
 import { BottomNavigation, useNavHeight } from '@/components/home/BottomNavigation';
 import { MessageButton } from '@/components/home/MessageButton';
 import { NameWheel } from '@/components/home/NameWheel';
@@ -76,6 +77,8 @@ export default function Home() {
         message="Maria is ready to help. Tap to view."
         onOpenNotification={() => {
           setShowOffer(false);
+          // 새 요청에 다시 도움 제안이 온 것이므로 시연을 반복하면 목록에도 다시 나타남
+          restoreChat('Maria');
           router.replace('/chat/maria');
         }}
       />
