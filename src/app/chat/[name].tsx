@@ -12,11 +12,23 @@ import { HELP_PROGRESS, HelpProgressTrack } from '@/components/chat/HelpProgress
 import { MatchConfirmedModal } from '@/components/chat/MatchConfirmedModal';
 import { MessageBubble } from '@/components/chat/MessageBubble';
 import { ProfileSheet } from '@/components/chat/ProfileSheet';
-import { removeChat } from '@/components/chat/removedChats';
+import { queueCompletionPush, removeChat } from '@/components/chat/removedChats';
 import { Dialog } from '@/components/Dialog';
-import { CONTACTS, formatTime, REPLY_DELAY_MS, type ChatMessage, type Contact } from '@/components/chat/contacts';
+import {
+  CONFIRM_PUSHES,
+  CONTACTS,
+  DEPARTED_DATE,
+  DEPARTED_MESSAGE,
+  formatTime,
+  HELP_PUSH_MS,
+  REPLY_DELAY_MS,
+  todayAt,
+  type ChatMessage,
+  type Contact,
+  type HelpRoute,
+} from '@/components/chat/contacts';
 import { useWebPageBackground } from '@/hooks/use-web-page-background';
-import { colors, radius, typography } from '@/theme/tokens';
+import { colors, fonts, radius, typography } from '@/theme/tokens';
 
 // 상태바 아래 헤더 높이 (Figma Header 100 − 상태바 47)
 const HEADER_HEIGHT = 53;
@@ -34,15 +46,19 @@ const PROGRESS_HEIGHT = 90;
 // Help Completed 버튼: 입력 바 위 15, 대화 영역은 입력 바 위 71 에서 끝남
 const COMPLETE_BOTTOM = 15;
 const COMPLETE_SCROLL_BOTTOM = 71;
-// 프로토타입: 실제 시간 대신 다음 단계 잠금화면 알림이 이만큼 뒤에 내려옴
-const HELP_PUSH_MS = 4000;
 // 잠금화면 알림 높이 — 진행 막대 포함 (Figma Platter 약 148)
 const PUSH_PROGRESS_HEIGHT = 148;
+// 잠금화면 확인 알림 높이 — Not Yet / Yes 버튼 포함 (Figma Platter 약 140)
+const PUSH_ACTIONS_HEIGHT = 140;
 // 입력 바: 입력칸은 바 위에서 16
 const BAR_PADDING = 16;
 // 말풍선 사이 간격 — 같은 사람이면 12, 사람이 바뀌면 20
 const GAP_SAME = 12;
 const GAP_CHANGE = 20;
+// 날짜 칩 위 간격 (Figma 말풍선 시각 아래 → 칩)
+const GAP_DATE = 40;
+// 도움 제공 진행 중 마지막 말풍선 ~ 입력 바 (Figma 1967:20418 664 → 732)
+const PROGRESS_SCROLL_BOTTOM = 68;
 
 // 디자인이 있는 상대(Maria, Miguel)가 아니면 이름만 보여주는 빈 채팅
 function contactFor(name?: string): Contact {
@@ -57,10 +73,32 @@ function contactFor(name?: string): Contact {
   );
 }
 
-// 매칭 확정 뒤 단계 — pending: 수락 전, confirmed: 분홍 표시만, departed·arrived: 진행 막대
-type HelpStage = 'pending' | 'confirmed' | 'departed' | 'arrived';
+// 매칭 확정 뒤 단계 — pending: 수락 전, confirmed: 분홍 표시만, departed·pickedUp·arrived: 진행 막대
+type HelpStage = 'pending' | 'confirmed' | 'departed' | 'pickedUp' | 'arrived';
 
-// Figma "도움 요청_채팅" (1935:42314 ~ 42946, 1967:19083 / 19129 / 19184, Maria) / "도움 제공_채팅" (1935:44067 / 44089, Miguel)
+// 도움 제공자에게 지금 단계에서 물을 확인 알림과 Yes 뒤의 다음 단계
+function confirmStep(route: HelpRoute, stage: HelpStage) {
+  if (stage === 'confirmed') return { push: CONFIRM_PUSHES.leave, next: 'departed' as const };
+  if (stage === 'departed') {
+    return route === 'one'
+      ? { push: CONFIRM_PUSHES.arrival, next: 'arrived' as const }
+      : { push: CONFIRM_PUSHES.pickup, next: 'pickedUp' as const };
+  }
+  if (stage === 'pickedUp') return { push: CONFIRM_PUSHES.dropoff, next: 'arrived' as const };
+  return null;
+}
+
+function progressState(contact: Contact, stage: HelpStage) {
+  if (contact.provider?.route === 'two') {
+    if (stage === 'departed') return HELP_PROGRESS.twoDeparted;
+    return stage === 'pickedUp' ? HELP_PROGRESS.twoPickedUp : HELP_PROGRESS.twoDroppedOff;
+  }
+  if (stage === 'departed') return HELP_PROGRESS.chatDeparted;
+  return contact.provider ? HELP_PROGRESS.chatProviderArrived : HELP_PROGRESS.chatArrived;
+}
+
+// Figma "도움 요청_채팅" (1935:42314 ~ 42946, 1967:19083 / 19129 / 19184, Maria)
+// "도움 제공_채팅" (1967:20361 ~ 20608, Miguel — 장소 2개 프레임은 Carlos 에 연결)
 export default function Chat() {
   const { name } = useLocalSearchParams<{ name?: string }>();
   const contact = contactFor(name);
@@ -75,6 +113,7 @@ export default function Chat() {
   const [showMatch, setShowMatch] = useState(false);
   const [stage, setStage] = useState<HelpStage>('pending');
   const [showPush, setShowPush] = useState(false);
+  const [pushRetry, setPushRetry] = useState(0);
   const [completion, setCompletion] = useState<'ask' | 'done' | null>(null);
   const [barHeight, setBarHeight] = useState(112);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -92,16 +131,36 @@ export default function Chat() {
     return () => clearTimeout(t);
   }, [lastSentAt, replyIndex, replies]);
 
-  // 다음 단계 알림: 매칭 확정 → 출발 알림 → 도착 알림
-  const { helpPushes } = contact;
+  // 도움 제공: 첫 메시지를 보내면 상대가 수락 → 분홍 표시(1967:20361) → 상대 답장(1967:20388)
+  const { helpPushes, provider } = contact;
   useEffect(() => {
-    if (!helpPushes || (stage !== 'confirmed' && stage !== 'departed')) return;
+    if (!provider || stage !== 'pending' || lastSentAt === null) return;
+    const t = setTimeout(() => {
+      setMessages((list) => [...list, { id: 'match-confirmed', from: 'system', kind: 'notice', text: 'Match Confirmed.', at: todayAt(9, 41) }]);
+      setStage('confirmed');
+    }, REPLY_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [provider, stage, lastSentAt]);
+  useEffect(() => {
+    const reply = provider?.reply;
+    if (!reply || stage !== 'confirmed') return;
+    const t = setTimeout(() => {
+      setMessages((list) => [...list, { id: 'match-reply', from: 'them', kind: 'text', text: reply, at: todayAt(9, 41) }]);
+    }, REPLY_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [provider, stage]);
+
+  // 다음 단계 알림: 매칭 확정 → 출발 알림 → (Pickup 도착) → 도착 알림. Not Yet 이면 같은 방식으로 다시 뜸
+  const step = provider ? confirmStep(provider.route, stage) : null;
+  const awaitingPush = !!step || (!!helpPushes && (stage === 'confirmed' || stage === 'departed'));
+  useEffect(() => {
+    if (!awaitingPush) return;
     const t = setTimeout(() => setShowPush(true), HELP_PUSH_MS);
     return () => clearTimeout(t);
-  }, [stage, helpPushes]);
+  }, [stage, awaitingPush, pushRetry]);
 
   const showActions = contact.matchActions && stage === 'pending';
-  const hasProgress = stage === 'departed' || stage === 'arrived';
+  const hasProgress = stage === 'departed' || stage === 'pickedUp' || stage === 'arrived';
   const canComplete = stage === 'arrived';
 
   const closeMatchModal = () => {
@@ -117,6 +176,29 @@ export default function Chat() {
   };
 
   const id = () => `me${Date.now()}`;
+  // 도움 제공 첫 메시지는 Figma 대화 시각에 맞춤 (뒤따르는 1:34 pm 메시지와 순서가 어긋나지 않게)
+  const sentAt = () => (provider && stage === 'pending' ? todayAt(9, 41) : new Date());
+
+  const answerYes = () => {
+    if (!step) return;
+    setShowPush(false);
+    if (stage === 'confirmed') {
+      const at = todayAt(13, 34);
+      setMessages((list) => [
+        ...list,
+        { id: 'departed-date', from: 'system', kind: 'date', text: DEPARTED_DATE, at },
+        { id: 'departed-message', from: 'me', kind: 'text', text: DEPARTED_MESSAGE, at },
+      ]);
+    }
+    setStage(step.next);
+  };
+
+  const finishCompletion = () => {
+    setCompletion(null);
+    removeChat(contact.name);
+    if (provider?.completion === 'waiting') queueCompletionPush(contact.name);
+    router.replace('/home');
+  };
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -132,7 +214,7 @@ export default function Chat() {
         // 입력 바는 대화 위에 덮이므로 그 높이 + 20 만큼 아래 여백 (완료 버튼이 있으면 대화 영역 자체가 위에서 끝남)
         contentContainerStyle={{
           paddingTop: hasProgress ? SCROLL_PAD_PROGRESS : showActions ? SCROLL_PAD : 0,
-          paddingBottom: canComplete ? 0 : barHeight + 20,
+          paddingBottom: canComplete ? 0 : barHeight + (provider && hasProgress ? PROGRESS_SCROLL_BOTTOM : 20),
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -148,10 +230,14 @@ export default function Chat() {
           // 같은 사람·같은 분의 마지막 말풍선에만 시각 표시
           const showTime = !next || next.from !== m.from || formatTime(next.at) !== formatTime(m.at);
           return (
-            <View key={m.id} style={{ marginTop: !prev ? 0 : prev.from === m.from ? GAP_SAME : GAP_CHANGE }}>
+            <View key={m.id} style={{ marginTop: !prev ? 0 : m.kind === 'date' ? GAP_DATE : prev.from === m.from ? GAP_SAME : GAP_CHANGE }}>
               {m.kind === 'notice' ? (
                 <View style={styles.notice}>
                   <Text style={[typography.body1Medium, styles.noticeText]}>{m.text}</Text>
+                </View>
+              ) : m.kind === 'date' ? (
+                <View style={styles.dateChip}>
+                  <Text style={styles.dateText}>{m.text}</Text>
                 </View>
               ) : (
                 <MessageBubble message={m} time={showTime ? formatTime(m.at) : undefined} />
@@ -171,8 +257,8 @@ export default function Chat() {
       >
         <ChatComposer
           onFocusChange={setInputFocused}
-          onSendText={(text) => append({ id: id(), from: 'me', kind: 'text', text, at: new Date() })}
-          onSendVoice={(seconds) => append({ id: id(), from: 'me', kind: 'voice', seconds, at: new Date() })}
+          onSendText={(text) => append({ id: id(), from: 'me', kind: 'text', text, at: sentAt() })}
+          onSendVoice={(seconds) => append({ id: id(), from: 'me', kind: 'voice', seconds, at: sentAt() })}
         />
       </FrostedBar>
 
@@ -194,7 +280,7 @@ export default function Chat() {
           locations={[0.71667, 1]}
           style={[styles.progress, { top: insets.top + HEADER_HEIGHT }]}
         >
-          <HelpProgressTrack state={stage === 'departed' ? HELP_PROGRESS.chatDeparted : HELP_PROGRESS.chatArrived} />
+          <HelpProgressTrack state={progressState(contact, stage)} />
         </LinearGradient>
       ) : null}
 
@@ -257,6 +343,30 @@ export default function Chat() {
         />
       ) : null}
 
+      {/* Figma 1967:20914 ~ 21074 — 도움 제공자 단계 확인. Not Yet 이면 닫았다가 다시 뜸 */}
+      {step ? (
+        <ApprovalLockScreen
+          visible={showPush}
+          appearance="help"
+          date="Monday, November 5"
+          time={step.push.time}
+          title={step.push.title}
+          message={step.push.message}
+          notificationHeight={PUSH_ACTIONS_HEIGHT}
+          onOpenNotification={answerYes}
+          actions={[
+            {
+              label: 'Not Yet',
+              onPress: () => {
+                setShowPush(false);
+                setPushRetry((n) => n + 1);
+              },
+            },
+            { label: 'Yes', onPress: answerYes },
+          ]}
+        />
+      ) : null}
+
       {/* Figma 1967:20658 — 도움 완료 확인 */}
       <Dialog
         visible={completion === 'ask'}
@@ -268,16 +378,12 @@ export default function Chat() {
         onCancel={() => setCompletion(null)}
         onConfirm={() => setCompletion('done')}
       />
-      {/* Figma 1967:20826 — 상대가 아직 안 누른 경우. 누른 사람은 채팅을 다시 볼 수 없음 */}
+      {/* Figma 1967:20826 상대가 아직 안 누른 경우 — 누른 사람은 채팅을 다시 볼 수 없음. 1967:20777 둘 다 완료 */}
       <MatchConfirmedModal
         visible={completion === 'done'}
-        title="Completion Confirmed!"
-        message="Waiting for the other person to confirm."
-        onClose={() => {
-          setCompletion(null);
-          removeChat(contact.name);
-          router.replace('/home');
-        }}
+        title={provider?.completion === 'both' ? 'Help Completed!' : 'Completion Confirmed!'}
+        message={provider?.completion === 'both' ? 'Both of you have confirmed. This chat will now be deleted.' : 'Waiting for the other person to confirm.'}
+        onClose={finishCompletion}
       />
     </KeyboardAvoidingView>
   );
@@ -293,6 +399,9 @@ const styles = StyleSheet.create({
   // Figma 분홍 표시: Accent/Pink, 안쪽 여백 10, 가운데
   notice: { alignSelf: 'center', padding: 10, borderRadius: radius.s, backgroundColor: colors.accentPink },
   noticeText: { color: colors.labelNormal },
+  // Figma 날짜 칩: Accent/Pink Light, Caption 2/R Accent/Pink Strong
+  dateChip: { alignSelf: 'center', paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.m, backgroundColor: colors.accentPinkLight },
+  dateText: { fontFamily: fonts.robotoRegular, fontSize: 11, lineHeight: 14, textAlign: 'center', color: colors.accentPinkStrong },
   complete: { position: 'absolute', alignSelf: 'center', width: 350 },
   progress: { position: 'absolute', left: 0, right: 0, height: PROGRESS_HEIGHT, paddingTop: 24, alignItems: 'center' },
   // Figma: 알림 기준 (-8, 약 85) — 프레임 폭 390 기준으로 배치

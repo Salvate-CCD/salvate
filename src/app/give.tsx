@@ -1,8 +1,10 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import { CATEGORIES, REQUESTS } from '@/components/give/giveData';
+import { ApprovalLockScreen } from '@/components/ApprovalLockScreen';
+import { HELP_PUSH_MS } from '@/components/chat/contacts';
+import { CARLOS_REQUEST_ID, CATEGORIES, REQUESTS } from '@/components/give/giveData';
 import { RequestListCard } from '@/components/give/RequestListCard';
 import { UrgencyTabs } from '@/components/give/UrgencyTabs';
 import { BottomNavigation, useNavHeight } from '@/components/home/BottomNavigation';
@@ -11,12 +13,29 @@ import { Screen } from '@/components/Screen';
 import { TitleBlock } from '@/components/TitleBlock';
 import { colors, fonts } from '@/theme/tokens';
 
+// Figma 1967:20877 알림 높이
+const CRITICAL_PUSH_HEIGHT = 102;
+// 긴급 요청 알림은 탭에 처음 들어왔을 때 한 번만 — 새로고침하면 다시 뜸
+let criticalPushShown = false;
+
 // Figma "Give(도움 제공 페이지)" > "도움 제공_메인페이지" (1935:43752 / 43823 / 43887 / 43972)
 // 긴급도 탭마다 목록이 바뀜. 카테고리는 선택 표시만 (목록은 바뀌지 않음)
 export default function GiveHelp() {
   const navHeight = useNavHeight();
   const [urgency, setUrgency] = useState<Urgency>('Critical');
   const [category, setCategory] = useState(CATEGORIES[0].label);
+  const [showCritical, setShowCritical] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (criticalPushShown) return;
+      const t = setTimeout(() => {
+        criticalPushShown = true;
+        setShowCritical(true);
+      }, HELP_PUSH_MS);
+      return () => clearTimeout(t);
+    }, []),
+  );
 
   return (
     // 내비게이션이 홈 인디케이터 영역까지 덮으므로 아래 여백은 직접 처리
@@ -62,6 +81,22 @@ export default function GiveHelp() {
       </ScrollView>
 
       <BottomNavigation selected="give" />
+
+      {/* Figma 1967:20877 — 프로토타입에서는 Give 탭에 들어오고 몇 초 뒤 */}
+      <ApprovalLockScreen
+        visible={showCritical}
+        appearance="critical"
+        eyebrow="sálvate"
+        date="Monday, June 3"
+        time="9:41"
+        title="Critical Help Request"
+        message="Carlos urgently needs a ride to the hospital. Can you help?"
+        notificationHeight={CRITICAL_PUSH_HEIGHT}
+        onOpenNotification={() => {
+          setShowCritical(false);
+          router.push({ pathname: '/give/request', params: { id: CARLOS_REQUEST_ID } });
+        }}
+      />
     </Screen>
   );
 }

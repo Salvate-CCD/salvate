@@ -106,6 +106,9 @@ export const REQUESTS: Record<Urgency, RequestSummary[]> = {
   ]),
 };
 
+// Critical 알림(Figma 1967:20877)을 누르면 여는 Carlos 카드
+export const CARLOS_REQUEST_ID = 'Critical-1';
+
 export function findRequest(id?: string) {
   return Object.values(REQUESTS)
     .flat()

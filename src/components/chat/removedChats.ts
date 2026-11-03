@@ -12,3 +12,18 @@ export function restoreChat(name: string) {
 export function isChatRemoved(name: string) {
   return removed.has(name);
 }
+
+// 상대가 나중에 완료를 눌렀다는 알림(Figma 1967:20707)을 기다리는 채팅 — 홈으로 돌아간 뒤 내려옴
+let pendingCompletion: string | null = null;
+
+export function queueCompletionPush(name: string) {
+  pendingCompletion = name;
+}
+
+export function peekCompletionPush() {
+  return pendingCompletion;
+}
+
+export function clearCompletionPush() {
+  pendingCompletion = null;
+}
