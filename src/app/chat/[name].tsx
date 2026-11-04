@@ -27,6 +27,7 @@ import {
   type Contact,
   type HelpRoute,
 } from '@/components/chat/contacts';
+import { useWebKeyboardViewport } from '@/hooks/use-web-keyboard-viewport';
 import { useWebPageBackground } from '@/hooks/use-web-page-background';
 import { colors, fonts, radius, typography } from '@/theme/tokens';
 
@@ -109,6 +110,7 @@ export default function Chat() {
   const [replyIndex, setReplyIndex] = useState(0);
   const [lastSentAt, setLastSentAt] = useState<number | null>(null);
   const [inputFocused, setInputFocused] = useState(false);
+  const { style: keyboardViewport, keyboardOpen } = useWebKeyboardViewport();
   const [showProfile, setShowProfile] = useState(false);
   const [showMatch, setShowMatch] = useState(false);
   const [stage, setStage] = useState<HelpStage>('pending');
@@ -201,7 +203,7 @@ export default function Chat() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[styles.root, keyboardViewport]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         ref={scroll}
         style={[
@@ -251,8 +253,8 @@ export default function Chat() {
       <FrostedBar
         blur={22}
         tint={0.88}
-        // 홈 인디케이터 위 여백 14 (Figma 112 = 16 + 48 + 14 + 34)
-        style={[styles.bottomBar, { paddingBottom: inputFocused ? BAR_PADDING : insets.bottom + 14 }]}
+        // 홈 인디케이터 위 여백 14 (Figma 112 = 16 + 48 + 14 + 34). 웹은 포커스 순간이 아니라 키보드가 실제로 열릴 때 줄여 입력창이 튀지 않게 함
+        style={[styles.bottomBar, { paddingBottom: (Platform.OS === 'web' ? keyboardOpen : inputFocused) ? BAR_PADDING : insets.bottom + 14 }]}
         onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}
       >
         <ChatComposer
