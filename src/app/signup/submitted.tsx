@@ -5,6 +5,7 @@ import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { TitleBlock } from '@/components/TitleBlock';
+import { queueApprovalPush } from '@/state/account';
 
 // Figma "Graphic_Check" 3개 프레임(1608:35310 / 35328 / 35346)은 같은 링을 회전시킨 상태들
 // → 링("젤 뒤에 원")만 계속 돌리고, 가운데 사람 아이콘은 고정
@@ -12,9 +13,10 @@ const ROTATION_MS = 6000; // 한 바퀴
 
 // Figma "회원가입 - 회원가입 완료"
 export default function Submitted() {
-  // 가입 완료 → 홈. 홈 가운데에 입력한 이름을 보여주므로 가입 정보(draft)는 지우지 않음
+  // 신청 완료 → 관리자 승인 대기: 랜딩으로 돌아가 승인 알림을 기다림. 로그인 뒤 홈 가운데에 이름을 보여주므로 가입 정보(draft)는 지우지 않음
   const onOk = () => {
-    router.replace('/home');
+    queueApprovalPush();
+    router.dismissTo('/welcome');
   };
 
   return (

@@ -1,21 +1,22 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ApprovalLockScreen } from '@/components/ApprovalLockScreen';
 import { ApprovedSheet } from '@/components/ApprovedSheet';
 import { Button } from '@/components/Button';
+import { HELP_PUSH_MS } from '@/components/chat/contacts';
 import { Dialog } from '@/components/Dialog';
 import { Logo } from '@/components/Logo';
 import { Screen } from '@/components/Screen';
 import { openWhatsAppVerification } from '@/lib/whatsapp';
-import { isAccountApproved, markAccountApproved } from '@/state/account';
+import { clearApprovalPush, hasApprovalPush } from '@/state/account';
 
 // Figma "회원가입/로그인" 첫 화면 — WhatsApp 로그인 / 회원가입 진입
 //
-// 로그인 프로토타입 흐름:
-//  1) 아직 승인 전이면 로그인 버튼 → "회원 승인" 잠금화면(푸시 알림)이 위에서 내려옴
+// 프로토타입 흐름:
+//  1) 가입 신청 후 돌아오면 몇 초 뒤 "회원 승인" 잠금화면(푸시 알림)이 위에서 내려옴. 승인 대기 중 로그인 버튼을 눌러도 바로 뜸
 //  2) 알림 터치 → "Your account is approved!" 시트 → OK → 랜딩
-//  3) 승인 후 로그인 버튼 → "Open WhatsApp?" → WhatsApp 인증
+//  3) 로그인 버튼 → "Open WhatsApp?" → WhatsApp 인증 (로그인할 때마다)
 export default function Welcome() {
   const [confirmLogin, setConfirmLogin] = useState(false);
   const [showLockScreen, setShowLockScreen] = useState(false);
@@ -23,19 +24,30 @@ export default function Welcome() {
   const { approved } = useLocalSearchParams<{ approved?: string }>();
   const [showApproved, setShowApproved] = useState(approved === '1');
 
+  const showApprovalPush = useCallback(() => {
+    clearApprovalPush();
+    setShowLockScreen(true);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasApprovalPush()) return;
+      // 그 사이 로그인 버튼으로 이미 띄웠으면 다시 띄우지 않음
+      const t = setTimeout(() => {
+        if (hasApprovalPush()) showApprovalPush();
+      }, HELP_PUSH_MS);
+      return () => clearTimeout(t);
+    }, [showApprovalPush]),
+  );
+
   const onLoginPress = () => {
-    if (isAccountApproved()) setConfirmLogin(true);
-    else setShowLockScreen(true);
+    if (hasApprovalPush()) showApprovalPush();
+    else setConfirmLogin(true);
   };
 
   const onNotificationOpen = () => {
     setShowLockScreen(false);
     setShowApproved(true);
-  };
-
-  const onApprovedClose = () => {
-    markAccountApproved();
-    setShowApproved(false);
   };
 
   const login = () => {
@@ -65,7 +77,7 @@ export default function Welcome() {
       />
 
       <ApprovalLockScreen visible={showLockScreen} appearance="help" onOpenNotification={onNotificationOpen} />
-      <ApprovedSheet visible={showApproved} onClose={onApprovedClose} />
+      <ApprovedSheet visible={showApproved} onClose={() => setShowApproved(false)} />
     </Screen>
   );
 }
