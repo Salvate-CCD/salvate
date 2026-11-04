@@ -31,19 +31,56 @@ export const CATEGORIES: { label: string; icon: ImageSource }[] = [
 
 export type Relation = 'Your Friend' | 'Friend of Friend';
 
-export type RequestSummary = { id: string; title: string; name: string; distance: string; relation: Relation };
+export type RequestDetail = { name: string; chat: string; request: HelpRequest };
 
-const TITLE = 'Need Help Filling Out School Enrollment Forms';
+export type RequestSummary = { id: string; title: string; name: string; distance: string; relation: Relation; detail: RequestDetail };
 
-function list(urgency: Urgency, rows: [string, Relation][]): RequestSummary[] {
-  return rows.map(([distance, relation], i) => ({ id: `${urgency}-${i}`, title: TITLE, name: 'Miguel', distance, relation }));
+// Figma "도움 제공_상세페이지" (1967:20278) — Carlos 카드가 아니면 어느 카드를 눌러도 이 상세를 보여줌
+export const MIGUEL_REQUEST: RequestDetail = {
+  name: 'Miguel',
+  chat: 'miguel',
+  request: {
+    urgency: 'Moderate',
+    category: 'Language Help',
+    title: 'Need Help Filling Out School Enrollment Forms',
+    body: "I need to complete my daughter's school enrollment forms, but they're in English and I don't understand some of the questions. I'm worried about filling them out incorrectly. I need someone who speaks both Spanish and English to help me understand the forms and complete them before the deadline tomorrow.",
+    time: { value: '2:00 PM – 3:00 PM' },
+    date: { value: 'Thu, Nov 5, 2026' },
+    places: { location: 'Palisades Park, NJ (exact address private)' },
+  },
+};
+
+// Figma "도움 제공_상세페이지" (1967:20296) — 문구 그대로
+export const CARLOS_REQUEST: RequestDetail = {
+  name: 'Carlos',
+  chat: 'carlos',
+  request: {
+    urgency: 'Critical',
+    category: 'Rides & Carpool',
+    title: 'Need an Urgent Ride to the Hospital',
+    body: "need to get to the hospital as soon as possible because I'm experiencing severe abdominal pain and dizziness. I don't have a car, and there's no one available to drive me right now. I urgently need someone who can take me to the hospital.",
+    time: { tag: 'As soon as possible', value: '9:00 PM' },
+    date: { tag: 'Today', value: 'Thu, Nov 5, 2026' },
+    places: { location: 'Palisades Park, NJ (exact address private)' },
+  },
+};
+
+function list(urgency: Urgency, rows: [string, Relation, RequestDetail?][]): RequestSummary[] {
+  return rows.map(([distance, relation, detail = MIGUEL_REQUEST], i) => ({
+    id: `${urgency}-${i}`,
+    title: detail.request.title,
+    name: detail.name,
+    distance,
+    relation,
+    detail,
+  }));
 }
 
-// 탭마다 Figma 프레임의 목록 그대로
+// 탭마다 Figma 프레임의 목록 그대로 (Figma 목록에 없는 Carlos 는 Critical 의 Friend of Friend 카드에 연결)
 export const REQUESTS: Record<Urgency, RequestSummary[]> = {
   Critical: list('Critical', [
     ['1.6 miles', 'Your Friend'],
-    ['2.4 miles', 'Friend of Friend'],
+    ['2.4 miles', 'Friend of Friend', CARLOS_REQUEST],
     ['3.9 miles', 'Your Friend'],
     ['4.1 miles', 'Your Friend'],
   ]),
@@ -69,16 +106,11 @@ export const REQUESTS: Record<Urgency, RequestSummary[]> = {
   ]),
 };
 
-// Figma "도움 제공_상세페이지" (1935:44050) — 어느 카드를 눌러도 이 상세를 보여줌
-export const MIGUEL_REQUEST: { name: string; request: HelpRequest } = {
-  name: 'Miguel',
-  request: {
-    urgency: 'Moderate',
-    category: 'Language Help',
-    title: TITLE,
-    body: "I need to complete my daughter's school enrollment forms, but they're in English and I don't understand some of the questions. I'm worried about filling them out incorrectly. I need someone who speaks both Spanish and English to help me understand the forms and complete them before the deadline tomorrow.",
-    time: { value: '2:00 PM – 3:00 PM' },
-    date: { value: 'Thu, Nov 5, 2026' },
-    places: { location: 'Palisades Park, NJ (exact address private)' },
-  },
-};
+// Critical 알림(Figma 1967:20877)을 누르면 여는 Carlos 카드
+export const CARLOS_REQUEST_ID = 'Critical-1';
+
+export function findRequest(id?: string) {
+  return Object.values(REQUESTS)
+    .flat()
+    .find((item) => item.id === id);
+}

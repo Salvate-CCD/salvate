@@ -1,8 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ApprovalLockScreen } from '@/components/ApprovalLockScreen';
+import { HELP_PUSH_MS } from '@/components/chat/contacts';
+import { clearCompletionPush, peekCompletionPush, restoreChat } from '@/components/chat/removedChats';
 import { BottomNavigation, useNavHeight } from '@/components/home/BottomNavigation';
 import { MessageButton } from '@/components/home/MessageButton';
 import { NameWheel } from '@/components/home/NameWheel';
@@ -15,6 +17,8 @@ import { colors } from '@/theme/tokens';
 const FALLBACK_NAME = 'José';
 // 도움 요청 게시 후 홈이 보인 뒤 잠금화면 알림이 내려오기까지의 시간
 const OFFER_NOTIFICATION_MS = 1000;
+// Figma 1967:20707 알림 높이 — 본문 두 줄
+const COMPLETED_PUSH_HEIGHT = 89;
 
 // Figma "Home(메인화면)" > "홈_메인페이지" (1935:44135 / 44795) + 메시지 목록 (1935:44355)
 export default function Home() {
@@ -32,6 +36,20 @@ export default function Home() {
     const t = setTimeout(() => setShowOffer(true), OFFER_NOTIFICATION_MS);
     return () => clearTimeout(t);
   }, [posted]);
+
+  // 내가 먼저 Help Completed 를 누르고 돌아온 뒤, 상대도 눌렀다는 알림 (Figma 1967:20707)
+  const [completedWith, setCompletedWith] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      const name = peekCompletionPush();
+      if (!name) return;
+      const t = setTimeout(() => {
+        clearCompletionPush();
+        setCompletedWith(name);
+      }, HELP_PUSH_MS);
+      return () => clearTimeout(t);
+    }, []),
+  );
 
   return (
     // 내비게이션이 홈 인디케이터 영역까지 덮으므로 아래 여백은 직접 처리
@@ -70,14 +88,27 @@ export default function Home() {
       </View>
       <ApprovalLockScreen
         visible={showOffer}
+        appearance="help"
         date="Monday, June 3"
         time="9:41"
         title="Someone offered to help"
         message="Maria is ready to help. Tap to view."
         onOpenNotification={() => {
           setShowOffer(false);
+          // 새 요청에 다시 도움 제안이 온 것이므로 시연을 반복하면 목록에도 다시 나타남
+          restoreChat('Maria');
           router.replace('/chat/maria');
         }}
+      />
+      <ApprovalLockScreen
+        visible={completedWith !== null}
+        appearance="help"
+        date="Monday, June 3"
+        time="9:41"
+        title="Help Completed!"
+        message={`Both you and ${completedWith} have confirmed completion. Thank you for helping!`}
+        notificationHeight={COMPLETED_PUSH_HEIGHT}
+        onOpenNotification={() => setCompletedWith(null)}
       />
     </Screen>
   );

@@ -1,10 +1,10 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { colors, fonts } from '@/theme/tokens';
 import type { RequestSummary } from './giveData';
+import { RelationChip } from './RelationChip';
 
 // Figma 목록 카드 350×93 — 제목(두 줄까지) + 이름·거리 + 관계 칩("Button/Chip Button/Name")
 export function RequestListCard({ item, onPress }: { item: RequestSummary; onPress: () => void }) {
-  const friend = item.relation === 'Your Friend';
   return (
     <Pressable
       accessibilityRole="button"
@@ -16,9 +16,7 @@ export function RequestListCard({ item, onPress }: { item: RequestSummary; onPre
         {item.title}
       </Text>
       <Text style={styles.meta}>{`${item.name} ・ ${item.distance}`}</Text>
-      <View style={[styles.chip, { backgroundColor: friend ? colors.primary : colors.secondaryNormal }]}>
-        <Text style={styles.chipLabel}>{item.relation}</Text>
-      </View>
+      <RelationChip relation={item.relation} style={styles.chip} />
     </Pressable>
   );
 }
@@ -53,7 +51,5 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: colors.labelNeutral,
   },
-  chip: { position: 'absolute', right: 20, top: 11, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 999 },
-  // Caption 2/R 11/14
-  chipLabel: { fontFamily: fonts.robotoRegular, fontSize: 11, lineHeight: 14, color: colors.white, textAlign: 'center' },
+  chip: { position: 'absolute', right: 20, top: 11 },
 });

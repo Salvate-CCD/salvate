@@ -7,7 +7,7 @@ import { formatDuration, type ChatMessage } from './contacts';
 export const BUBBLE_WIDTH = 214;
 
 type Props = {
-  message: ChatMessage;
+  message: Exclude<ChatMessage, { kind: 'notice' | 'date' }>;
   /** 같은 사람·같은 분의 묶음에서 마지막이면 시각을 옆에 표시 */
   time?: string;
 };

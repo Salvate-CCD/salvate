@@ -64,7 +64,7 @@ export default function Welcome() {
         onConfirm={login}
       />
 
-      <ApprovalLockScreen visible={showLockScreen} onOpenNotification={onNotificationOpen} />
+      <ApprovalLockScreen visible={showLockScreen} appearance="help" onOpenNotification={onNotificationOpen} />
       <ApprovedSheet visible={showApproved} onClose={onApprovedClose} />
     </Screen>
   );

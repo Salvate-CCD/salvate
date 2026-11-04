@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Animated,
   Easing,
@@ -10,6 +10,7 @@ import {
   Text,
   useWindowDimensions,
   View,
+  type ViewStyle,
 } from 'react-native';
 import { BOTTOM_BLEED, FullBleedOverlay, TOP_BLEED } from '@/components/lockscreen/FullBleedOverlay';
 import { colors, fonts, radius, typography } from '@/theme/tokens';
@@ -23,14 +24,38 @@ type Props = {
   time?: string;
   title?: string;
   message?: string;
+  /** help: 도움 진행 알림(1967:19898 / 1967:19943) — 검은 글자 + 분홍 로고. critical: 긴급 요청 알림(1967:20877) — 빨간 아이콘 */
+  appearance?: 'approval' | 'help' | 'critical';
+  /** 제목 위 작은 글자 (critical 의 "sálvate") */
+  eyebrow?: string;
+  /** 알림 안쪽 아래에 더 그릴 내용 (진행 막대) */
+  footer?: ReactNode;
+  /** 알림 높이 — 기본 80 */
+  notificationHeight?: number;
+  /** 알림 안 버튼 두 개 (Figma "Not Yet" / "Yes") — 있으면 알림 자체는 눌리지 않음 */
+  actions?: [LockAction, LockAction];
 };
+
+export type LockAction = { label: string; onPress: () => void };
 
 const SLIDE_MS = 450;
 // 배경화면(wallpaper.jpg) 위·아래 끝 색 — 웹에서 Safari 상태바·툴바 뒤까지 잠금화면처럼 보이게
 const WALLPAPER_TOP = '#A8DBE4';
 const WALLPAPER_BOTTOM = '#7ABCCB';
+// Figma 버튼 (18, 333) / (202, 333) — 알림 안쪽(테두리 1 제외) 기준
+const ACTION_LEFT = [9, 193];
 const isWeb = Platform.OS === 'web';
 const useNativeDriver = !isWeb;
+
+// Figma 알림 유리 효과 (흐림 12). 웹의 BlurView 는 흰색을 덧칠해 Figma 보다 밝아지므로 웹은 흐림만 적용
+function GlassBlur({ borderRadius }: { borderRadius: number }) {
+  return isWeb ? (
+    // backdrop-filter 는 부모의 overflow 로 잘리지 않아 모서리를 직접 맞춤
+    <View style={[StyleSheet.absoluteFill, { borderRadius, backdropFilter: 'blur(12px)' } as ViewStyle]} />
+  ) : (
+    <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
+  );
+}
 
 // Figma "회원 승인" — 승인 푸시 알림이 와 있는 iOS 잠금화면. 위에서 스르륵 내려와 열림.
 // 도움 요청 게시 후 "Someone offered to help" 알림(1608:33987)도 같은 레이아웃에 문구만 바꿔 사용.
@@ -41,7 +66,15 @@ export function ApprovalLockScreen({
   time = '10:41',
   title = 'Your account is approved!',
   message = 'Welcome to Sálvate! Tap to get started.',
+  appearance = 'approval',
+  footer,
+  notificationHeight,
+  eyebrow,
+  actions,
 }: Props) {
+  const help = appearance === 'help';
+  const critical = appearance === 'critical';
+  const textColor = help || critical ? styles.black : styles.white;
   const { height } = useWindowDimensions();
   // 0 = 화면 위로 숨음, 1 = 다 내려옴
   const [shown] = useState(() => new Animated.Value(0));
@@ -71,11 +104,11 @@ export function ApprovalLockScreen({
       });
   }, [visible]);
 
-  const open = () => {
-    Animated.timing(shown, { toValue: 0, duration: SLIDE_MS * 0.7, easing: Easing.in(Easing.cubic), useNativeDriver }).start(
-      () => onOpenNotification(),
-    );
+  // 위로 올라간 뒤 호출
+  const close = (after: () => void) => {
+    Animated.timing(shown, { toValue: 0, duration: SLIDE_MS * 0.7, easing: Easing.in(Easing.cubic), useNativeDriver }).start(() => after());
   };
+  const open = () => close(onOpenNotification);
 
   return (
     <FullBleedOverlay visible={visible} onRequestClose={open}>
@@ -87,22 +120,41 @@ export function ApprovalLockScreen({
           <Text style={styles.time}>{time}</Text>
 
           <Pressable
-            accessibilityRole="button"
+            accessibilityRole={actions ? undefined : 'button'}
             accessibilityLabel={`${title} ${message}`}
-            onPress={open}
-            style={({ pressed }) => [styles.notification, pressed && { opacity: 0.85 }]}
+            onPress={actions ? undefined : open}
+            style={({ pressed }) => [styles.notification, notificationHeight ? { height: notificationHeight } : null, pressed && !actions && { opacity: 0.85 }]}
           >
-            <BlurView intensity={30} tint="light" style={styles.platterBlur} />
-            <View style={styles.appIcon}>
-              <Image source={require('../../assets/figma/lockscreen/logo-symbol-white.svg')} style={styles.appSymbol} />
+            {help || critical ? <GlassBlur borderRadius={radius['2xl']} /> : <BlurView intensity={30} tint="light" style={styles.platterBlur} />}
+            <View style={[styles.appIcon, critical && styles.appIconCritical]}>
+              {critical ? (
+                <Image source={require('../../assets/figma/lockscreen/icon-caution.svg')} style={styles.appCaution} />
+              ) : help ? (
+                <Image source={require('../../assets/figma/lockscreen/logo-symbol-accent.svg')} style={styles.appSymbolAccent} />
+              ) : (
+                <Image source={require('../../assets/figma/lockscreen/logo-symbol-white.svg')} style={styles.appSymbol} />
+              )}
             </View>
-            <View style={styles.content}>
-              <Text style={[typography.body1Bold, styles.white]} numberOfLines={1}>
+            <View style={[styles.content, eyebrow ? styles.contentEyebrow : null]}>
+              {eyebrow ? <Text style={[styles.eyebrow, textColor]}>{eyebrow}</Text> : null}
+              <Text style={[typography.body1Bold, textColor]} numberOfLines={1}>
                 {title}
               </Text>
-              <Text style={[styles.caption, styles.white]}>{message}</Text>
+              <Text style={[styles.caption, textColor]}>{message}</Text>
             </View>
             <Text style={styles.now}>now</Text>
+            {footer}
+            {actions?.map((action, i) => (
+              <Pressable
+                key={action.label}
+                accessibilityRole="button"
+                onPress={() => close(action.onPress)}
+                style={[styles.action, { left: ACTION_LEFT[i] }]}
+              >
+                <GlassBlur borderRadius={radius.l} />
+                <Text style={styles.actionText}>{action.label}</Text>
+              </Pressable>
+            ))}
           </Pressable>
 
           <Image source={require('../../assets/figma/lockscreen/flashlight-button.svg')} style={[styles.quickButton, { left: 48 }]} />
@@ -160,12 +212,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     boxShadow: 'inset 0px 0px 8px 0px #5AAE97', // Mint/500
   },
+  // Figma Status/Negative + 안쪽 빛 번짐 Red/200
+  appIconCritical: { backgroundColor: colors.statusNegative, boxShadow: 'inset 0px 0px 8px 0px #EE8A8A' },
+  // Figma: 아이콘 안쪽 (5, 4)
+  appCaution: { width: 16, height: 16, marginTop: -2 },
   appSymbol: { width: 20, height: 7.54 },
+  // Figma Logo(27×17) 의 Symbol 영역 — 아이콘 기준 (4.33, 7.25)
+  appSymbolAccent: { position: 'absolute', left: 4.33, top: 7.25, width: 16.3, height: 10.23 },
   content: { position: 'absolute', left: 58, right: 18, top: 19, gap: 5 },
+  // critical: "sálvate" y 16.5, 제목 33.5, 본문 55.5
+  contentEyebrow: { top: 16, gap: 4 },
+  // Figma "Caption/Caption 1/B"
+  eyebrow: { marginBottom: -2, fontFamily: fonts.robotoBold, fontSize: 12, lineHeight: 15 },
   // Figma "Caption/Caption 1/R"
   caption: { fontFamily: fonts.robotoRegular, fontSize: 12, lineHeight: 15 },
   white: { color: colors.white },
+  black: { color: colors.black },
   now: { position: 'absolute', top: 13, right: 15, fontSize: 13, letterSpacing: -0.31, color: colors.white, opacity: 0.72 },
+  // Figma Platter 165×44, 위 84 (333 − 249) — 흐림 12, #F5F5F5 46%
+  action: {
+    position: 'absolute',
+    top: 83,
+    width: 165,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.l,
+    backgroundColor: 'rgba(245, 245, 245, 0.46)',
+    overflow: 'hidden',
+  },
+  actionText: { fontSize: 15, color: colors.white },
   quickButton: { position: 'absolute', bottom: 52, width: 52, height: 51.97 },
   swipe: { position: 'absolute', bottom: 63, left: 0, right: 0, textAlign: 'center', fontSize: 17, letterSpacing: -0.408, color: colors.white, opacity: 0.64 },
 });

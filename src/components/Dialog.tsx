@@ -6,6 +6,8 @@ type Props = {
   title: string;
   message: string;
   cancelLabel?: string;
+  /** 왼쪽 버튼 글자색 — 기본은 Status/Negative */
+  cancelColor?: string;
   confirmLabel: string;
   onCancel: () => void;
   onConfirm: () => void;
@@ -14,7 +16,7 @@ type Props = {
 };
 
 // Figma "Modal/Frame" + "Modal/Dim Box" — 2버튼 확인 모달
-export function Dialog({ visible, title, message, cancelLabel = 'Cancel', confirmLabel, onCancel, onConfirm, onDismiss }: Props) {
+export function Dialog({ visible, title, message, cancelLabel = 'Cancel', cancelColor = colors.statusNegative, confirmLabel, onCancel, onConfirm, onDismiss }: Props) {
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onDismiss ?? onCancel}>
       <View style={styles.dim}>
@@ -25,7 +27,7 @@ export function Dialog({ visible, title, message, cancelLabel = 'Cancel', confir
           </View>
           <View style={styles.buttons}>
             <Pressable accessibilityRole="button" onPress={onCancel} style={[styles.button, styles.leftButton]}>
-              <Text style={[typography.label1Medium, { color: colors.statusNegative }]}>{cancelLabel}</Text>
+              <Text style={[typography.label1Medium, { color: cancelColor }]}>{cancelLabel}</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={onConfirm} style={styles.button}>
               <Text style={[typography.label1Medium, { color: colors.statusPositive }]}>{confirmLabel}</Text>
