@@ -25,7 +25,14 @@
       "output": "single"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "asyncRoutes": {
+            "web": false
+          }
+        }
+      ],
       "expo-font",
       [
         "expo-splash-screen",
@@ -43,11 +50,6 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {
-        "asyncRoutes": {
-          "web": true
-        }
-      },
       "eas": {
         "projectId": "6181d60c-842e-4e33-a6b6-b7630359f7f4"
       }
