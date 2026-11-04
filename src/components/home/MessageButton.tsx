@@ -1,14 +1,16 @@
 import { Image } from 'expo-image';
+import { router, type Href } from 'expo-router';
 import { Fragment } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { isChatRemoved } from '@/components/chat/removedChats';
 import { colors, fonts } from '@/theme/tokens';
 
-type Conversation = { name: string; title: string; unread: boolean };
+// chat: 채팅 화면이 있는 대화만 눌러서 들어감
+type Conversation = { name: string; title: string; unread: boolean; chat?: Href };
 
 // Figma "Message List" 예시 대화 (서버 연동 전 임시 데이터)
 const CONVERSATIONS: Conversation[] = [
-  { name: 'Maria', title: 'Need a Ride to the Hospital', unread: true },
+  { name: 'Maria', title: 'Need a Ride to the Hospital', unread: true, chat: '/chat/maria' },
   { name: 'Iglesia Nueva Esperanza', title: 'Free Essential Supplies for Families', unread: false },
   { name: 'Jimena', title: 'Need Someone to Watch My Child Tomorrow', unread: false },
 ];
@@ -60,24 +62,44 @@ function MessageList() {
             {i > 0 ? (
               <Image source={require('../../../assets/figma/home/message-list-divider.svg')} style={styles.divider} />
             ) : null}
-            {/* 항목을 눌렀을 때의 동작은 아직 디자인이 없음 */}
-            <View style={styles.item}>
-              <View style={styles.nameRow}>
-                <Text numberOfLines={1} style={styles.name}>
-                  {c.name}
-                </Text>
-                {c.unread ? (
-                  <Image source={require('../../../assets/figma/home/message-list-alert.svg')} style={styles.unread} />
-                ) : null}
+            {c.chat ? (
+              // 채팅에서 뒤로 가면 홈으로 — 알림에서 들어올 때와 같게 replace
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${c.name}: ${c.title}`}
+                onPress={() => router.replace(c.chat as Href)}
+                style={styles.item}
+              >
+                <ConversationText conversation={c} />
+              </Pressable>
+            ) : (
+              // 채팅 화면이 아직 없는 대화
+              <View style={styles.item}>
+                <ConversationText conversation={c} />
               </View>
-              <Text numberOfLines={2} style={styles.title}>
-                {c.title}
-              </Text>
-            </View>
+            )}
           </Fragment>
         ))}
       </ScrollView>
     </View>
+  );
+}
+
+function ConversationText({ conversation: c }: { conversation: Conversation }) {
+  return (
+    <>
+      <View style={styles.nameRow}>
+        <Text numberOfLines={1} style={styles.name}>
+          {c.name}
+        </Text>
+        {c.unread ? (
+          <Image source={require('../../../assets/figma/home/message-list-alert.svg')} style={styles.unread} />
+        ) : null}
+      </View>
+      <Text numberOfLines={2} style={styles.title}>
+        {c.title}
+      </Text>
+    </>
   );
 }
 
