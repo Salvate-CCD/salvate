@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
+import { startHelping } from '@/components/give/completedRequests';
 import { findRequest, MIGUEL_REQUEST } from '@/components/give/giveData';
 import { RelationChip } from '@/components/give/RelationChip';
 import { Header } from '@/components/Header';
@@ -40,7 +41,10 @@ export default function RequestDetails() {
         />
         <RequestCard request={request} />
         {/* Figma "스크롤 하단 여백용 프레임" 32 */}
-        <Button label="Give Help" style={styles.button} onPress={() => router.push(`/chat/${chat}`)} />
+        <Button label="Give Help" style={styles.button} onPress={() => {
+            if (item) startHelping(chat, item.id);
+            router.push(`/chat/${chat}`);
+          }} />
       </ScrollView>
 
       {/* Figma "header": 뒤로가기 + "Request Details" — 스크롤되는 내용을 가림 */}

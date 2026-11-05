@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { ApprovalLockScreen } from '@/components/ApprovalLockScreen';
 import { HELP_PUSH_MS } from '@/components/chat/contacts';
+import { isRequestCompleted } from '@/components/give/completedRequests';
 import { CARLOS_REQUEST_ID, CATEGORIES, REQUESTS } from '@/components/give/giveData';
 import { RequestListCard } from '@/components/give/RequestListCard';
 import { UrgencyTabs } from '@/components/give/UrgencyTabs';
@@ -75,7 +76,7 @@ export default function GiveHelp() {
         contentContainerStyle={[styles.list, { paddingBottom: navHeight + 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        {REQUESTS[urgency].map((item) => (
+        {REQUESTS[urgency].filter((item) => !isRequestCompleted(item.id)).map((item) => (
           <RequestListCard key={item.id} item={item} onPress={() => router.push({ pathname: '/give/request', params: { id: item.id } })} />
         ))}
       </ScrollView>
