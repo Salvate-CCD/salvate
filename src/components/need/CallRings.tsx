@@ -1,4 +1,4 @@
-import { Image, type ImageSource } from 'expo-image';
+import { Image, type ImageSource } from '@/components/Image';
 import { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 

@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { Image } from '@/components/Image';
 import { forwardRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, TextInput, View, type TextInputInstance, type TextStyle } from 'react-native';
 import { colors, fonts } from '@/theme/tokens';

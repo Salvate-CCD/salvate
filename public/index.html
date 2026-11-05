@@ -25,6 +25,15 @@
         if (content && content.indexOf('viewport-fit') === -1) meta.setAttribute('content', content + ', viewport-fit=cover');
       })();
     </script>
+    <!-- 서비스 워커: 한 번 받은 아이콘·폰트·JS(해시 붙은 정적 파일)를 폰에 저장 — public/sw.js 참고.
+         개발 서버(localhost)에서는 등록하지 않음 -->
+    <script>
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+      }
+    </script>
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
       /* These styles make the body full-height */

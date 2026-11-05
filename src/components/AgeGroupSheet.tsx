@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { Image } from '@/components/Image';
 import { Modal, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { colors, fonts, typography } from '@/theme/tokens';
 

@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { Image } from '@/components/Image';
 import { memo, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   Animated,

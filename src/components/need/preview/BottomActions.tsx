@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import { Image } from 'expo-image';
+import { Image } from '@/components/Image';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography } from '@/theme/tokens';

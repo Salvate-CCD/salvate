@@ -1,4 +1,4 @@
-import { Image, type ImageSource } from 'expo-image';
+import { Image, type ImageSource } from '@/components/Image';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { colors, fonts, radius } from '@/theme/tokens';
 

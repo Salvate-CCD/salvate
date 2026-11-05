@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import { Image } from 'expo-image';
+import { Image } from '@/components/Image';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   Animated,
@@ -47,14 +47,17 @@ const ACTION_LEFT = [9, 193];
 const isWeb = Platform.OS === 'web';
 const useNativeDriver = !isWeb;
 
-// Figma 알림 유리 효과 (흐림 12). 웹의 BlurView 는 흰색을 덧칠해 Figma 보다 밝아지므로 웹은 흐림만 적용
-function GlassBlur({ borderRadius }: { borderRadius: number }) {
-  return isWeb ? (
-    // backdrop-filter 는 부모의 overflow 로 잘리지 않아 모서리를 직접 맞춤
-    <View style={[StyleSheet.absoluteFill, { borderRadius, backdropFilter: 'blur(12px)' } as ViewStyle]} />
-  ) : (
-    <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
-  );
+// 웹 유리 효과: iOS Safari 는 모서리가 둥글고 overflow: hidden 인 상자 "안쪽 자식"의 backdrop-filter 를
+// 그리지 않을 때가 있어(알림이 그냥 투명하게 보임) 흐림을 알림·버튼 상자 자체에 검. 네이티브는 BlurView 자식 사용
+// - help / critical (Figma 흐림 12): 흐림만. 웹 BlurView 는 흰색을 덧칠해 Figma 보다 밝아짐
+// - approval: 예전 웹 BlurView(intensity 30, light)와 같은 값 — 채도 180%·흐림 6 + 흰색 23.4% 덧칠
+const WEB_GLASS = { backdropFilter: 'blur(12px)' } as ViewStyle;
+const WEB_APPROVAL_GLASS = { backdropFilter: 'saturate(180%) blur(6px)' } as ViewStyle;
+const APPROVAL_TINT = 'rgba(249, 249, 249, 0.234)';
+
+// 네이티브 전용 흐림 레이어 (웹은 위 스타일을 상자 자체에 적용)
+function GlassBlur() {
+  return isWeb ? null : <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />;
 }
 
 // Figma "회원 승인" — 승인 푸시 알림이 와 있는 iOS 잠금화면. 위에서 스르륵 내려와 열림.
@@ -98,10 +101,16 @@ export function ApprovalLockScreen({
       el.style.backgroundColor = WALLPAPER_BOTTOM;
       el.style.backgroundImage = `linear-gradient(${WALLPAPER_TOP}, ${WALLPAPER_BOTTOM})`;
     }
-    return () =>
+    // 상단바(홈 화면 앱은 iOS 가 직접 칠함)·Safari 툴바 색도 배경화면 위쪽 색으로 — 따르지 않는 iOS 에서는 효과 없음
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    const prevTheme = themeMeta?.getAttribute('content') ?? null;
+    themeMeta?.setAttribute('content', WALLPAPER_TOP);
+    return () => {
       targets.forEach((el, i) => {
         [el.style.backgroundColor, el.style.backgroundImage] = prev[i];
       });
+      if (themeMeta && prevTheme !== null) themeMeta.setAttribute('content', prevTheme);
+    };
   }, [visible]);
 
   // 위로 올라간 뒤 호출
@@ -123,9 +132,20 @@ export function ApprovalLockScreen({
             accessibilityRole={actions ? undefined : 'button'}
             accessibilityLabel={`${title} ${message}`}
             onPress={actions ? undefined : open}
-            style={({ pressed }) => [styles.notification, notificationHeight ? { height: notificationHeight } : null, pressed && !actions && { opacity: 0.85 }]}
+            style={({ pressed }) => [
+              styles.notification,
+              isWeb && (help || critical ? WEB_GLASS : WEB_APPROVAL_GLASS),
+              notificationHeight ? { height: notificationHeight } : null,
+              pressed && !actions && { opacity: 0.85 },
+            ]}
           >
-            {help || critical ? <GlassBlur borderRadius={radius['2xl']} /> : <BlurView intensity={30} tint="light" style={styles.platterBlur} />}
+            {help || critical ? (
+              <GlassBlur />
+            ) : isWeb ? (
+              <View style={[styles.platterBlur, { backgroundColor: APPROVAL_TINT }]} />
+            ) : (
+              <BlurView intensity={30} tint="light" style={styles.platterBlur} />
+            )}
             <View style={[styles.appIcon, critical && styles.appIconCritical]}>
               {critical ? (
                 <Image source={require('../../assets/figma/lockscreen/icon-caution.svg')} style={styles.appCaution} />
@@ -149,9 +169,9 @@ export function ApprovalLockScreen({
                 key={action.label}
                 accessibilityRole="button"
                 onPress={() => close(action.onPress)}
-                style={[styles.action, { left: ACTION_LEFT[i] }]}
+                style={[styles.action, isWeb && WEB_GLASS, { left: ACTION_LEFT[i] }]}
               >
-                <GlassBlur borderRadius={radius.l} />
+                <GlassBlur />
                 <Text style={styles.actionText}>{action.label}</Text>
               </Pressable>
             ))}
