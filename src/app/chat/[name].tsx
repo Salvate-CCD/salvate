@@ -12,6 +12,7 @@ import { HELP_PROGRESS, HelpProgressTrack } from '@/components/chat/HelpProgress
 import { MatchConfirmedModal } from '@/components/chat/MatchConfirmedModal';
 import { MessageBubble } from '@/components/chat/MessageBubble';
 import { ProfileSheet } from '@/components/chat/ProfileSheet';
+import { getChatSession, saveChatSession, type HelpStage } from '@/components/chat/chatSessions';
 import { queueCompletionPush, removeChat } from '@/components/chat/removedChats';
 import { Dialog } from '@/components/Dialog';
 import {
@@ -74,9 +75,6 @@ function contactFor(name?: string): Contact {
   );
 }
 
-// 매칭 확정 뒤 단계 — pending: 수락 전, confirmed: 분홍 표시만, departed·pickedUp·arrived: 진행 막대
-type HelpStage = 'pending' | 'confirmed' | 'departed' | 'pickedUp' | 'arrived';
-
 // 도움 제공자에게 지금 단계에서 물을 확인 알림과 Yes 뒤의 다음 단계
 function confirmStep(route: HelpRoute, stage: HelpStage) {
   if (stage === 'confirmed') return { push: CONFIRM_PUSHES.leave, next: 'departed' as const };
@@ -106,19 +104,26 @@ export default function Chat() {
   const insets = useSafeAreaInsets();
   useWebPageBackground(colors.backgroundAlternative);
 
-  const [messages, setMessages] = useState<ChatMessage[]>(contact.initialMessages);
-  const [replyIndex, setReplyIndex] = useState(0);
-  const [lastSentAt, setLastSentAt] = useState<number | null>(null);
+  // 전에 이 상대와 진행하던 채팅이 있으면 이어서 (뒤로 나갔다가 다시 들어온 경우)
+  const [saved] = useState(() => getChatSession(contact.name));
+  const [messages, setMessages] = useState<ChatMessage[]>(() => saved?.messages ?? contact.initialMessages());
+  const [replyIndex, setReplyIndex] = useState(saved?.replyIndex ?? 0);
+  const [lastSentAt, setLastSentAt] = useState<number | null>(saved?.lastSentAt ?? null);
   const [inputFocused, setInputFocused] = useState(false);
   const { style: keyboardViewport, keyboardOpen } = useWebKeyboardViewport();
   const [showProfile, setShowProfile] = useState(false);
   const [showMatch, setShowMatch] = useState(false);
-  const [stage, setStage] = useState<HelpStage>('pending');
+  const [stage, setStage] = useState<HelpStage>(saved?.stage ?? 'pending');
   const [showPush, setShowPush] = useState(false);
   const [pushRetry, setPushRetry] = useState(0);
   const [completion, setCompletion] = useState<'ask' | 'done' | null>(null);
   const [barHeight, setBarHeight] = useState(112);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+
+  // 진행 상태를 상대별로 기억
+  useEffect(() => {
+    saveChatSession(contact.name, { messages, replyIndex, lastSentAt, stage });
+  }, [contact.name, messages, replyIndex, lastSentAt, stage]);
 
   // 내가 보낸 뒤 잠시 조용하면 상대가 정해진 다음 답장을 보냄
   const { replies } = contact;
@@ -138,7 +143,11 @@ export default function Chat() {
   useEffect(() => {
     if (!provider || stage !== 'pending' || lastSentAt === null) return;
     const t = setTimeout(() => {
-      setMessages((list) => [...list, { id: 'match-confirmed', from: 'system', kind: 'notice', text: 'Match Confirmed.', at: todayAt(9, 41) }]);
+      setMessages((list) =>
+        list.some((m) => m.id === 'match-confirmed')
+          ? list
+          : [...list, { id: 'match-confirmed', from: 'system', kind: 'notice', text: 'Match Confirmed.', at: todayAt(9, 41) }],
+      );
       setStage('confirmed');
     }, REPLY_DELAY_MS);
     return () => clearTimeout(t);
@@ -147,7 +156,12 @@ export default function Chat() {
     const reply = provider?.reply;
     if (!reply || stage !== 'confirmed') return;
     const t = setTimeout(() => {
-      setMessages((list) => [...list, { id: 'match-reply', from: 'them', kind: 'text', text: reply, at: todayAt(9, 41) }]);
+      // 채팅에 다시 들어와도 답장은 한 번만
+      setMessages((list) =>
+        list.some((m) => m.id === 'match-reply')
+          ? list
+          : [...list, { id: 'match-reply', from: 'them', kind: 'text', text: reply, at: todayAt(9, 41) }],
+      );
     }, REPLY_DELAY_MS);
     return () => clearTimeout(t);
   }, [provider, stage]);
