@@ -1,4 +1,4 @@
-import type { ImageSource } from 'expo-image';
+import type { ImageSource } from '@/components/Image';
 import type { HelpRequest, Urgency } from '@/components/need/preview/mockRequest';
 import { colors } from '@/theme/tokens';
 

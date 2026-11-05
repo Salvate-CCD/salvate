@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { Image } from '@/components/Image';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 type Props = { style?: StyleProp<ViewStyle> };

@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { Image } from '@/components/Image';
 import { forwardRef, useState } from 'react';
 import {
   StyleSheet,

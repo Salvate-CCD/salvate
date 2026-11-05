@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { Image } from '@/components/Image';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { BottomNavigation, useNavHeight } from '@/components/home/BottomNavigation';
