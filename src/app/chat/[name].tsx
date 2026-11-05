@@ -14,6 +14,7 @@ import { MessageBubble } from '@/components/chat/MessageBubble';
 import { ProfileSheet } from '@/components/chat/ProfileSheet';
 import { getChatSession, saveChatSession, type HelpStage } from '@/components/chat/chatSessions';
 import { queueCompletionPush, removeChat } from '@/components/chat/removedChats';
+import { completeHelping } from '@/components/give/completedRequests';
 import { Dialog } from '@/components/Dialog';
 import {
   CONFIRM_PUSHES,
@@ -212,6 +213,8 @@ export default function Chat() {
   const finishCompletion = () => {
     setCompletion(null);
     removeChat(contact.name);
+    // 도와준 요청 카드는 Give 목록에서 뺌
+    if (provider) completeHelping((name ?? '').toLowerCase());
     if (provider?.completion === 'waiting') queueCompletionPush(contact.name);
     router.replace('/home');
   };

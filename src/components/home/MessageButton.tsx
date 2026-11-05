@@ -15,6 +15,11 @@ const CONVERSATIONS: Conversation[] = [
   { name: 'Jimena', title: 'Need Someone to Watch My Child Tomorrow', unread: false },
 ];
 
+// 목록에 남아 있는 대화 중 읽지 않은 것이 있으면 버튼에 분홍 점
+function hasUnread() {
+  return CONVERSATIONS.some((c) => c.unread && !isChatRemoved(c.name));
+}
+
 type Props = {
   /** 목록이 열린 상태 (Figma property "Tap-Defaut") — 아이콘이 X 로 바뀌고 위에 대화 목록이 뜸 */
   open?: boolean;
@@ -42,8 +47,8 @@ export function MessageButton({ open = false, onPress, style }: Props) {
           <>
             {/* icons/Communicate/message-emoji */}
             <Image source={require('../../../assets/figma/home/message-icon.svg')} style={styles.icon} />
-            {/* alert: inset 12.5% -3.57% 66.07% 82.14% → (46, 7) 12×12. 열린 상태에서는 숨김 */}
-            <Image source={require('../../../assets/figma/home/message-alert.svg')} style={styles.alert} />
+            {/* alert: inset 12.5% -3.57% 66.07% 82.14% → (46, 7) 12×12. 열린 상태와 읽지 않은 대화가 없을 때는 숨김 */}
+            {hasUnread() ? <Image source={require('../../../assets/figma/home/message-alert.svg')} style={styles.alert} /> : null}
           </>
         )}
       </Pressable>
